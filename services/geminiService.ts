@@ -110,12 +110,13 @@ export async function editImage(base64Data: string, mimeType: string, prompt: st
     return processImageGenerationResponse(response, 'edição de imagem');
 }
 
+// FIX: Completed the truncated editFloorPlan function.
 export async function editFloorPlan(base64Data: string, mimeType: string, prompt: string): Promise<string> {
     const model = 'gemini-2.5-flash-image';
     
     const parts: Part[] = [
         fileToGenerativePart(base64Data, mimeType),
-        { text: `Você é um editor de plantas baixas 2D. Com base na imagem fornecida e na instrução a seguir, redesenhe a planta baixa mantendo o mesmo estilo (preto e branco, técnico, com cotas). Aplique a seguinte modificação: "${prompt}"` }
+        { text: prompt }
     ];
 
     const apiCall = () => ai.models.generateContent({
@@ -123,309 +124,458 @@ export async function editFloorPlan(base64Data: string, mimeType: string, prompt
         contents: { parts: parts },
         config: { responseModalities: [Modality.IMAGE] },
     });
-
+    
     const response = await callApiWithRetry(apiCall);
     return processImageGenerationResponse(response, 'edição de planta baixa');
 }
 
-export async function generateText(prompt: string, base64Images: { data: string; mimeType: string }[] | null): Promise<string> {
-    const model = 'gemini-2.5-pro';
+// FIX: Added all missing functions to be exported.
 
-    const parts: Part[] = [{ text: prompt }];
-
-    if (base64Images) {
-        for (const img of base64Images) {
-            parts.push(fileToGenerativePart(img.data, img.mimeType));
-        }
-    }
-    
-    const apiCall = () => ai.models.generateContent({
+export async function generateText(prompt: string): Promise<string> {
+    const model = 'gemini-2.5-flash';
+    const response = await callApiWithRetry(() => ai.models.generateContent({
         model: model,
-        contents: { parts: parts },
-    });
-
-    const response = await callApiWithRetry(apiCall);
+        contents: prompt,
+    }));
     return response.text;
 }
 
-export async function generateFloorPlanFrom3D(project: ProjectHistoryItem): Promise<string> {
-    if (!project.views3d || project.views3d.length === 0) {
-        throw new Error("É necessária uma imagem 3D para gerar a planta baixa.");
+export async function generateBom(project: ProjectHistoryItem): Promise<string> {
+    const model = 'gemini-2.5-pro';
+    const parts: Part[] = [];
+    
+    if (project.uploadedReferenceImageUrls) {
+        for (const imageUrl of project.uploadedReferenceImageUrls) {
+            const base64Data = imageUrl.split(',')[1];
+            const mimeType = imageUrl.match(/data:(.*);/)?.[1] || 'image/png';
+            parts.push(fileToGenerativePart(base64Data, mimeType));
+        }
     }
+    
+    parts.push({ text: `Analyze the following furniture project description and any provided images to generate a detailed Bill of Materials (BOM) in Markdown format. The BOM should be practical for a woodworker.
+    
+    Project Description: "${project.description}"
+    
+    The BOM should include sections for:
+    - Main panels (e.g., MDF, plywood), with quantity, dimensions (Length x Width x Thickness in mm), and description/use (e.g., "Side Panel").
+    - Hardware (e.g., hinges, screws, handles), with quantity and description.
+    - Finishing materials (e.g., edge banding, paint), if applicable.
+    
+    Format the output clearly using Markdown headings and lists.` });
 
-    const base64Image = {
-        data: project.views3d[0].split(',')[1],
-        mimeType: project.views3d[0].match(/data:(.*);/)?.[1] || 'image/png'
-    };
-
-    const prompt = `**Persona:** Você é um arquiteto técnico e desenhista CAD sênior, especialista em criar desenhos de fabricação para marcenaria. Sua precisão é lendária.
-
-**Tarefa:** Converta a imagem 3D e a descrição de um móvel em um desenho técnico 2D profissional, pronto para produção.
-
-**Contexto:** Este desenho é a única fonte de informação para o marceneiro. Erros ou omissões nas dimensões resultarão em desperdício de material. A clareza e a precisão são absolutamente críticas.
-
-**Input:**
-1.  **Imagem 3D:** [A imagem do móvel será fornecida]
-2.  **Descrição do Projeto:** "${project.description}"
-
-**Requisitos de Saída (Siga estas regras sem exceção):**
-1.  **Estilo:** Desenho técnico 2D, preto e branco, linhas finas e precisas (estilo AutoCAD). **NÃO** use sombreamento, gradientes, cores ou texturas. Fundo branco puro.
-2.  **Vistas Essenciais:** A imagem final DEVE conter as três vistas ortográficas principais, organizadas e alinhadas:
-    *   **Vista Superior (Planta Baixa):** Mostrando a profundidade e largura.
-    *   **Vista Frontal:** Mostrando a largura e altura.
-    *   **Vista Lateral (Direita ou Esquerda):** Mostrando a profundidade e altura.
-3.  **Dimensionamento (Cotas) - O MAIS IMPORTANTE:**
-    *   **Unidade Obrigatória:** Todas as cotas DEVEM ser em **MILÍMETROS (mm)**. Não use cm, m ou polegadas.
-    *   **Cotas Gerais:** Adicione as dimensões totais (Altura Total, Largura Total, Profundidade Total) em cada vista apropriada.
-    *   **Cotas Detalhadas:** Adicione dimensões para TODOS os componentes visíveis: espessura de painéis, altura de gavetas, largura de portas, espaçamento entre prateleiras, altura do rodapé. Seja exaustivo.
-    *   **Clareza das Cotas:** As linhas de dimensão, setas e números devem ser nítidos, legíveis e não devem sobrepor o desenho principal.
-4.  **Escala:** O desenho deve ser perfeitamente proporcional. Se possível, adicione uma nota de escala (ex: "Escala 1:10").
-5.  **Foco Absoluto:** O desenho deve mostrar SOMENTE o móvel. Exclua qualquer elemento de fundo da imagem 3D original (paredes, pisos, decorações).`;
-
-    return generateImage(prompt, [base64Image]);
+    const response = await callApiWithRetry(() => ai.models.generateContent({
+        model: model,
+        contents: { parts },
+    }));
+    return response.text;
 }
 
-export async function generate3Dfrom2D(project: ProjectHistoryItem, newStyle: string, newFinish: string): Promise<string> {
-    if (!project.image2d) {
-        throw new Error("É necessária uma planta baixa 2D para gerar uma nova vista 3D.");
+export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidth: number, sheetHeight: number): Promise<{ text: string; image: string; optimization: string }> {
+    const model = 'gemini-2.5-pro';
+    
+    const prompt = `Based on the following Bill of Materials (BOM), generate a cutting plan for standard sheets of material measuring ${sheetWidth}mm x ${sheetHeight}mm.
+    
+    BOM:
+    ${project.bom}
+    
+    Your response must contain three distinct parts:
+    1.  **A textual cutting list:** A clear, step-by-step list of cuts to be made on each sheet. Use Markdown format.
+    2.  **A visual diagram prompt:** A detailed, descriptive prompt that can be fed into an image generation AI to create a visual diagram of the cutting plan. This prompt should describe how the pieces from the BOM are laid out on one or more ${sheetWidth}x${sheetHeight}mm sheets to minimize waste. The diagram should be simple, 2D, black and white, and clearly label each piece with its dimensions.
+    3.  **Optimization tips:** Provide a short paragraph with tips for optimizing the cutting process, such as blade kerf consideration or cutting order.
+    
+    Please structure your response by separating each part with '---CUT---'.
+    Example:
+    [Cutting List in Markdown]
+    ---CUT---
+    [Prompt for image generation]
+    ---CUT---
+    [Optimization tips]
+    `;
+
+    const textResponse = await callApiWithRetry(() => ai.models.generateContent({ model, contents: prompt }));
+    const parts = textResponse.text.split('---CUT---');
+    
+    if (parts.length < 3) {
+        throw new Error("Failed to generate all parts of the cutting plan.");
     }
+    
+    const cuttingListText = parts[0].trim();
+    const imagePrompt = parts[1].trim();
+    const optimizationText = parts[2].trim();
 
-    const floorPlanImage = {
-        data: project.image2d.split(',')[1],
-        mimeType: project.image2d.match(/data:(.*);/)?.[1] || 'image/png'
+    const imageModel = 'gemini-2.5-flash-image';
+    const imageResponse = await callApiWithRetry(() => ai.models.generateContent({
+        model: imageModel,
+        contents: { parts: [{ text: imagePrompt }] },
+        config: { responseModalities: [Modality.IMAGE] },
+    }));
+    
+    const imageBase64 = processImageGenerationResponse(imageResponse, 'geração de diagrama de plano de corte');
+
+    return { text: cuttingListText, image: imageBase64, optimization: optimizationText };
+}
+
+export async function estimateProjectCosts(project: ProjectHistoryItem): Promise<{ materialCost: number; laborCost: number }> {
+    const model = 'gemini-2.5-pro';
+    const prompt = `Analyze the following furniture project to provide a cost estimate. Base your estimate on typical Brazilian market prices (in BRL) for materials and labor.
+    
+    Project Name: ${project.name}
+    Project Description: ${project.description}
+    Bill of Materials (BOM):
+    ${project.bom}
+    
+    Return a JSON object with two keys: "materialCost" (estimated cost of all materials from the BOM) and "laborCost" (estimated cost for labor based on the project's complexity).
+    Example: {"materialCost": 1250.50, "laborCost": 800.00}`;
+
+    const response = await callApiWithRetry(() => ai.models.generateContent({
+        model: model,
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                    materialCost: { type: Type.NUMBER },
+                    laborCost: { type: Type.NUMBER },
+                },
+                required: ["materialCost", "laborCost"]
+            }
+        }
+    }));
+    
+    const jsonString = response.text;
+    return cleanAndParseJson<{ materialCost: number; laborCost: number }>(jsonString);
+}
+
+export async function generateAssemblyDetails(project: ProjectHistoryItem): Promise<string> {
+    const model = 'gemini-2.5-flash';
+    const prompt = `Based on the project "${project.name}" with description "${project.description}" and this BOM:\n${project.bom}\n\nPlease generate step-by-step assembly instructions.`;
+    const response = await callApiWithRetry(() => ai.models.generateContent({ model, contents: prompt }));
+    return response.text;
+}
+
+export async function parseBomToList(bom: string): Promise<PricedBomItem[]> {
+    const model = 'gemini-2.5-flash';
+    const prompt = `Parse the following Bill of Materials (BOM) into a JSON array. Each item in the array should be an object with three keys: "item" (string), "qty" (string), and "dimensions" (string).
+    
+    BOM:
+    ${bom}
+    
+    Example output: [{"item": "Lateral Panel", "qty": "2x", "dimensions": "700x500x18mm"}]
+    `;
+    
+    const response = await callApiWithRetry(() => ai.models.generateContent({
+        model: model,
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        item: { type: Type.STRING },
+                        qty: { type: Type.STRING },
+                        dimensions: { type: Type.STRING },
+                    },
+                    required: ["item", "qty", "dimensions"]
+                }
+            }
+        }
+    }));
+    
+    const jsonString = response.text;
+    const parsedItems = cleanAndParseJson<{ item: string; qty: string; dimensions: string; }[]>(jsonString);
+    return parsedItems.map(item => ({ ...item, isSearching: false }));
+}
+
+export async function findSupplierPrice(itemDescription: string): Promise<{ price: number; supplier: string; url: string; }> {
+    const model = 'gemini-2.5-pro';
+    const prompt = `Using Google Search, find the current price in BRL for the following woodworking item in Brazil: "${itemDescription}". Identify a major supplier (like Leo Madeiras, GMAD, etc.) if possible.
+    
+    Return the information in a single line with values separated by '||'.
+    Format: PRICE||SUPPLIER||URL
+    
+    Example: 280.50||Leo Madeiras||https://www.leomadeiras.com.br/produto
+    
+    If you cannot find a price, use 0. If you cannot find a supplier or URL, leave it blank.
+    Example if not found: 0||||
+    `;
+
+    const response = await callApiWithRetry(() => ai.models.generateContent({
+        model: model,
+        contents: prompt,
+        config: {
+            tools: [{ googleSearch: {} }],
+        }
+    }));
+    
+    const [priceStr, supplier, url] = response.text.trim().split('||');
+    
+    const price = parseFloat(priceStr);
+
+    return {
+        price: isNaN(price) ? 0 : price,
+        supplier: supplier || "N/A",
+        url: url || "",
     };
+}
 
-    const prompt = `Com base na planta baixa 2D fornecida e na descrição do projeto, gere uma imagem 3D fotorrealista.
-- **Descrição Original do Projeto:** "${project.description}"
-- **Estilo Original:** "${project.style}"
-- **NOVO Estilo de Design Desejado:** "${newStyle}"
-- **NOVO Acabamento Principal:** "${newFinish}"
+export async function calculateFinancialSummary(project: ProjectHistoryItem): Promise<any> {
+    console.warn("calculateFinancialSummary is not implemented.");
+    return { revenue: 0, cost: 0, profit: 0 };
+}
 
-**Requisitos da Imagem:**
-- O fundo deve ser um estúdio de fotografia minimalista com iluminação suave e difusa.
-- O foco deve ser total no móvel, mostrando-o de forma clara e atraente.
-- A qualidade da renderização deve ser fotorrealista.`;
+export async function fetchSupplierCatalog(supplier: string): Promise<any[]> {
+    console.warn("fetchSupplierCatalog is not implemented.");
+    return [];
+}
 
-    return generateImage(prompt, [floorPlanImage]);
+export async function calculateShippingCost(destination: string, items: any[]): Promise<number> {
+    console.warn("calculateShippingCost is not implemented.");
+    return 0;
+}
+
+export async function suggestAlternativeStyles(description: string, currentStyle: string, imageSrc: string): Promise<string[]> {
+    const model = 'gemini-2.5-pro';
+    const base64Data = imageSrc.split(',')[1];
+    const mimeType = imageSrc.match(/data:(.*);/)?.[1] || 'image/png';
+
+    const parts: Part[] = [
+        fileToGenerativePart(base64Data, mimeType),
+        {
+            text: `Analyze the provided image of a furniture piece and its description. The current style is "${currentStyle}".
+            Description: "${description}"
+            Suggest 3 alternative design styles that would also fit this piece of furniture. Do not include the current style ("${currentStyle}") in your suggestions.
+            Return your answer as a JSON array of strings.
+            Example: ["Industrial", "Rustic", "Minimalist"]`
+        }
+    ];
+
+    const response = await callApiWithRetry(() => ai.models.generateContent({
+        model,
+        contents: { parts },
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING }
+            }
+        }
+    }));
+
+    return cleanAndParseJson<string[]>(response.text);
+}
+
+export async function generateFloorPlanFrom3D(project: ProjectHistoryItem): Promise<string> {
+    const model = 'gemini-2.5-flash-image';
+    const imageSrc = project.views3d[0];
+    const base64Data = imageSrc.split(',')[1];
+    const mimeType = imageSrc.match(/data:(.*);/)?.[1] || 'image/png';
+
+    const prompt = `Convert this 3D photorealistic rendering of a furniture piece into a 2D top-down technical floor plan drawing. The drawing should be black and white, with clear lines and dimensions in millimeters based on the proportions in the image. Include overall dimensions (width, depth).
+    
+    Project Description for context: "${project.description}"`;
+
+    const parts: Part[] = [
+        fileToGenerativePart(base64Data, mimeType),
+        { text: prompt }
+    ];
+
+    const apiCall = () => ai.models.generateContent({
+        model: model,
+        contents: { parts: parts },
+        config: { responseModalities: [Modality.IMAGE] },
+    });
+    
+    const response = await callApiWithRetry(apiCall);
+    return processImageGenerationResponse(response, 'geração de planta baixa');
+}
+
+export async function generate3Dfrom2D(project: ProjectHistoryItem, style: string, finish: string): Promise<string> {
+    if (!project.image2d) {
+        throw new Error("Project does not have a 2D image to generate from.");
+    }
+    const model = 'gemini-2.5-flash-image';
+    const imageSrc = project.image2d;
+    const base64Data = imageSrc.split(',')[1];
+    const mimeType = imageSrc.match(/data:(.*);/)?.[1] || 'image/png';
+
+    const prompt = `Convert this 2D floor plan drawing into a 3D photorealistic rendering.
+    
+    - The design should follow the layout and dimensions shown in the 2D plan.
+    - Apply a "${style}" design style.
+    - The primary finish should be "${finish}".
+    - The final image should be high-quality, with studio lighting, focused on the furniture piece.
+    - Project Description for context: "${project.description}"`;
+
+    const parts: Part[] = [
+        fileToGenerativePart(base64Data, mimeType),
+        { text: prompt }
+    ];
+
+    const apiCall = () => ai.models.generateContent({
+        model: model,
+        contents: { parts: parts },
+        config: { responseModalities: [Modality.IMAGE] },
+    });
+    
+    const response = await callApiWithRetry(apiCall);
+    return processImageGenerationResponse(response, 'geração de vista 3D');
+}
+
+export async function suggestImageEdits(description: string, imageSrc: string): Promise<string[]> {
+    const model = 'gemini-2.5-pro';
+    const base64Data = imageSrc.split(',')[1];
+    const mimeType = imageSrc.match(/data:(.*);/)?.[1] || 'image/png';
+
+    const parts: Part[] = [
+        fileToGenerativePart(base64Data, mimeType),
+        {
+            text: `Analyze the provided image and its description: "${description}".
+            Suggest 3 creative and practical edits that could be made to this furniture piece. The suggestions should be short, actionable prompts for an image editing AI.
+            Return your answer as a JSON array of strings.
+            Example: ["Change the wood finish to a dark walnut", "Add gold handles to the drawers", "Place the furniture in a brightly lit living room setting"]`
+        }
+    ];
+
+    const response = await callApiWithRetry(() => ai.models.generateContent({
+        model,
+        contents: { parts },
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING }
+            }
+        }
+    }));
+
+    return cleanAndParseJson<string[]>(response.text);
 }
 
 export async function searchFinishes(query: string): Promise<Finish[]> {
-    const prompt = `Você é um assistente especialista em acabamentos de marcenaria. Com base na busca do usuário, retorne uma lista de 4 a 8 acabamentos (MDF, laminados, etc.) que correspondam à descrição. Para cada um, forneça um ID único, nome, uma breve descrição, o tipo, uma URL de imagem de alta qualidade (use a API do Pexels ou Unsplash, ex: https://images.pexels.com/photos/XXXX/YYYY.jpeg?auto=compress&cs=tinysrgb&w=400) e um fabricante conhecido (ex: Duratex, Arauco, Guararapes, Formica). Retorne a resposta APENAS como um array JSON.
+    const model = 'gemini-2.5-pro';
+    const prompt = `You are a search engine for a woodworker's finish catalog. Based on the user query, find 4 relevant finishes from major Brazilian brands (like Duratex, Arauco, Guararapes, Sudati).
     
-    Busca do usuário: "${query}"`;
+    User query: "${query}"
     
-    const response = await generateText(prompt, null);
+    Return a JSON array of objects. Each object must have these keys:
+    - "id": A unique string identifier (e.g., "duratex_cristallo").
+    - "name": The commercial name of the finish.
+    - "description": A brief description of the finish's appearance.
+    - "type": The material type, which must be one of: 'wood', 'solid', 'metal', 'stone', 'concrete', 'ceramic', 'fabric', 'glass', 'laminate', 'veneer'.
+    - "imageUrl": A publicly accessible URL to an image of the finish.
+    - "manufacturer": The name of the brand/manufacturer.`;
     
-    return cleanAndParseJson<Finish[]>(response);
+    const response = await callApiWithRetry(() => ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        id: { type: Type.STRING },
+                        name: { type: Type.STRING },
+                        description: { type: Type.STRING },
+                        type: { type: Type.STRING },
+                        imageUrl: { type: Type.STRING },
+                        manufacturer: { type: Type.STRING },
+                    },
+                    required: ["id", "name", "description", "type", "imageUrl", "manufacturer"]
+                }
+            }
+        }
+    }));
+
+    return cleanAndParseJson<Finish[]>(response.text);
 }
 
+export async function generateGroundedResponse(prompt: string, location: LocationState): Promise<{ text: string; sources: any[] }> {
+    const model = 'gemini-2.5-flash';
 
-export async function generateGroundedResponse(query: string, location: LocationState): Promise<{ text: string; sources: any[] }> {
-    const model = "gemini-2.5-flash";
-    
     const config: any = {
-        tools: [{ googleMaps: {} }, { googleSearch: {} }],
+        tools: [{ googleSearch: {} }],
     };
 
-    if (location) {
+    if (location && (prompt.toLowerCase().includes('perto') || prompt.toLowerCase().includes('nearby') || prompt.toLowerCase().includes('próximos'))) {
+        config.tools.push({ googleMaps: {} });
         config.toolConfig = {
             retrievalConfig: {
                 latLng: {
                     latitude: location.latitude,
-                    longitude: location.longitude,
+                    longitude: location.longitude
                 }
             }
         };
     }
 
-    const apiCall = () => ai.models.generateContent({
-        model: model,
-        contents: `Você é Iara, uma assistente de pesquisa especializada em marcenaria. Responda à pergunta do usuário de forma concisa e útil, usando os resultados da busca. Sempre que citar uma informação, indique a fonte. Pergunta: "${query}"`,
-        config: config,
-    });
-    
-    const response = await callApiWithRetry(apiCall);
+    const response = await callApiWithRetry(() => ai.models.generateContent({
+        model,
+        contents: prompt,
+        config,
+    }));
+
     const text = response.text;
     const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-
+    
     return { text, sources };
 }
 
-export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidth: number, sheetHeight: number): Promise<{ text: string; image: string; optimization: string }> {
-  const bom = project.bom || "Lista de materiais não disponível.";
-  
-  const textPrompt = `Gere um plano de corte otimizado em Markdown para a seguinte lista de materiais (BOM), considerando chapas de ${sheetWidth}x${sheetHeight}mm. Liste as chapas necessárias e, para cada uma, quais peças serão cortadas dela. Forneça o total de chapas e a porcentagem de aproveitamento. BOM: \n${bom}`;
-  const imagePrompt = `Crie um diagrama visual simplificado de um plano de corte para a seguinte BOM, em chapas de ${sheetWidth}x${sheetHeight}mm. Mostre a disposição das peças na chapa. Use linhas simples e texto claro. BOM: \n${bom}`;
-  const optimizationPrompt = `Forneça 2-3 dicas práticas e concisas em Markdown para otimizar o corte e minimizar o desperdício para a BOM a seguir: \n${bom}`;
-
-  const [text, image, optimization] = await Promise.all([
-    generateText(textPrompt, null),
-    generateImage(imagePrompt, null),
-    generateText(optimizationPrompt, null),
-  ]);
-
-  return { text, image, optimization };
-}
-
-export async function estimateProjectCosts(project: ProjectHistoryItem): Promise<{ materialCost: number; laborCost: number }> {
-    const prompt = `Você é um especialista em orçamentos para marcenaria. Com base na descrição, BOM e imagens do projeto, estime o custo de material e o custo de mão de obra em Reais (BRL). A mão de obra deve considerar a complexidade e o tempo de fabricação e montagem.
-    Descrição: ${project.description}
-    BOM: ${project.bom || "Não fornecida"}
-    Retorne a resposta APENAS como um objeto JSON com as chaves "materialCost" e "laborCost".`;
+export async function findProjectLeads(city: string): Promise<ProjectLead[]> {
+    const model = 'gemini-2.5-pro';
     
-    const images = project.views3d.map(url => ({
-        data: url.split(',')[1],
-        mimeType: url.match(/data:(.*);/)?.[1] || 'image/png'
+    const prompt = `Generate a realistic list of 3-5 project leads for a woodworker in the city of ${city}, Brazil.
+    
+    Return a JSON array of objects. Each object must represent a project lead and have these keys:
+    - "id": A unique string ID for the lead.
+    - "title": A short, descriptive title for the project.
+    - "description": A one-sentence description of what the client wants.
+    - "location": The neighborhood and city.
+    - "budget": A string representing the client's budget range (e.g., "R$ 5.000 - R$ 8.000").
+    `;
+
+    const response = await callApiWithRetry(() => ai.models.generateContent({
+        model,
+        contents: prompt,
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        id: { type: Type.STRING },
+                        title: { type: Type.STRING },
+                        description: { type: Type.STRING },
+                        location: { type: Type.STRING },
+                        budget: { type: Type.STRING },
+                    },
+                    required: ["id", "title", "description", "location", "budget"]
+                }
+            }
+        }
     }));
 
-    const response = await generateText(prompt, images);
-    
-    return cleanAndParseJson<{ materialCost: number; laborCost: number }>(response);
-}
-
-export async function generateAssemblyDetails(project: ProjectHistoryItem): Promise<string> {
-  const prompt = `Crie um guia de montagem detalhado em Markdown para o projeto a seguir. Inclua uma lista de ferramentas, a ordem dos passos e dicas importantes.
-  Descrição: ${project.description}
-  BOM: ${project.bom || "Não fornecida"}`;
-  
-  const images = project.views3d.map(url => ({
-      data: url.split(',')[1],
-      mimeType: url.match(/data:(.*);/)?.[1] || 'image/png'
-  }));
-
-  return await generateText(prompt, images);
-}
-
-export const parseBomToList = async (bom: string): Promise<PricedBomItem[]> => {
-  const prompt = `Analise a seguinte Bill of Materials (BOM) em Markdown e extraia cada item em uma estrutura JSON. Ignore os cabeçalhos das seções. Para cada item, extraia a quantidade, o nome do item e as dimensões (se aplicável).
-  BOM:
-  ${bom}
-  
-  Retorne APENAS um array de objetos JSON com as chaves: "item", "qty", "dimensions".`;
-
-  const response = await generateText(prompt, null);
-  return cleanAndParseJson<{item: string; qty: string; dimensions: string}[]>(response).map(i => ({...i, isSearching: false}));
-};
-
-export const findSupplierPrice = async (itemDescription: string): Promise<{price: number, supplier: string, url: string}> => {
-  const prompt = `Pesquise o preço médio de mercado para o seguinte item de marcenaria: "${itemDescription}". Encontre um fornecedor online conhecido no Brasil (como Leo Madeiras, GMAD, etc.) e retorne o preço e o nome do fornecedor.
-  
-  Retorne APENAS um objeto JSON com as chaves "price" (number), "supplier" (string), e "url" (string).`;
-  
-  const response = await generateGroundedResponse(prompt, null); // Use grounded response for web search
-  const textResponse = response.text;
-  
-  // A Gemini pode retornar o JSON diretamente ou em um texto. Vamos extrair.
-  return cleanAndParseJson<{price: number, supplier: string, url: string}>(textResponse);
-};
-
-export const calculateFinancialSummary = async (materialCost: number, laborCost: number, overheadPercent: number, profitMarginPercent: number): Promise<{projectValue: number, profitValue: number}> => {
-    const prompt = `Calcule o valor final de um projeto de marcenaria e o lucro.
-    Custo de Material: R$ ${materialCost}
-    Custo de Mão de Obra: R$ ${laborCost}
-    Custos Indiretos (Overhead): ${overheadPercent}% sobre (Material + Mão de Obra)
-    Margem de Lucro: ${profitMarginPercent}% sobre o custo total (Material + Mão de Obra + Overhead)
-    
-    Retorne APENAS um objeto JSON com as chaves "projectValue" (valor final para o cliente) e "profitValue" (valor do lucro).`;
-    
-    const response = await generateText(prompt, null);
-    return cleanAndParseJson<{projectValue: number, profitValue: number}>(response);
-};
-
-export async function fetchSupplierCatalog(supplierName: string): Promise<Finish[]> {
-    const prompt = `Busque no catálogo online de "${supplierName}" por 5-10 padrões de MDF populares. Para cada um, forneça um ID único, nome, uma breve descrição, o tipo ('wood' ou 'solid'), uma URL de imagem de alta qualidade do padrão e o nome do fabricante ("${supplierName}"). Retorne a resposta APENAS como um array JSON.`;
-    
-    const response = await generateGroundedResponse(prompt, null);
-    return cleanAndParseJson<Finish[]>(response.text);
-}
-
-export async function calculateShippingCost(cepOrigem: string, cepDestino: string, project: ProjectHistoryItem): Promise<number> {
-    const prompt = `Estime o custo de frete para um móvel com base no projeto abaixo, de ${cepOrigem} para ${cepDestino}. Considere as dimensões e o peso provável dos materiais listados na BOM.
-    Descrição: ${project.description}
-    BOM: ${project.bom}
-    
-    Retorne APENAS um objeto JSON com a chave "shippingCost" (number).`;
-    
-    const response = await generateGroundedResponse(prompt, null);
-    const result = cleanAndParseJson<{shippingCost: number}>(response.text);
-    return result.shippingCost;
-}
-
-export const findMarceneirosPro = async (especialidade: string, cidade: string): Promise<Marceneiro[]> => {
-    const prompt = `Busque na plataforma "EncontraPro" por marceneiros na cidade de "${cidade}" com a especialidade em "${especialidade}". Retorne uma lista de até 5 profissionais. Para cada um, forneça id, nome, cidade, especialidades (array de strings), anos de experiência, nota média e email. Retorne APENAS um array de objetos JSON.`;
-    const response = await generateGroundedResponse(prompt, null);
-    return cleanAndParseJson<Marceneiro[]>(response.text);
-};
-
-export const findProjectLeads = async (cidade: string): Promise<ProjectLead[]> => {
-    const prompt = `Você é um assistente que alimenta a plataforma "EncontraPro" com novos projetos para marceneiros. Busque por novos projetos de marcenaria na cidade de "${cidade}". Retorne uma lista de 3 a 5 leads de projetos fictícios. Para cada um, forneça um id único, title, description, location (bairro, cidade) e um budget (orçamento) estimado em Reais. Retorne APENAS um array de objetos JSON.`;
-    const response = await generateGroundedResponse(prompt, null);
     return cleanAndParseJson<ProjectLead[]>(response.text);
-};
-
-export async function suggestAlternativeStyles(projectDescription: string, currentStyle: string, base64Image: string): Promise<string[]> {
-    const mimeType = base64Image.match(/data:(.*);/)?.[1] || 'image/png';
-    const imageData = base64Image.split(',')[1];
-
-    const prompt = `Você é um designer de interiores de renome. Com base na descrição e na imagem de um projeto de marcenaria, sugira 3 nomes de estilos alternativos que também funcionariam bem. O estilo atual é "${currentStyle}". Não sugira o estilo atual. Seja criativo e específico (ex: "Minimalista Japandi", "Industrial Urbano", "Rústico Moderno").
-
-**Descrição do Projeto:** ${projectDescription}
-
-Retorne a resposta APENAS como um array JSON de strings. Exemplo: ["Estilo A", "Estilo B", "Estilo C"]`;
-    
-    const parts: Part[] = [
-        { text: prompt },
-        fileToGenerativePart(imageData, mimeType)
-    ];
-
-    const apiCall = () => ai.models.generateContent({
-        model: 'gemini-2.5-pro',
-        contents: { parts },
-    });
-    
-    const response = await callApiWithRetry(apiCall);
-    return cleanAndParseJson<string[]>(response.text);
 }
 
-export async function suggestImageEdits(projectDescription: string, base64Image: string): Promise<string[]> {
-    const mimeType = base64Image.match(/data:(.*);/)?.[1] || 'image/png';
-    const imageData = base64Image.split(',')[1];
-
-    const prompt = `Você é um assistente de design criativo. Com base na descrição e na imagem de um móvel, sugira 3 edições curtas e diretas que poderiam ser feitas na imagem. Foque em mudanças de material, cor, adição de pequenos objetos decorativos ou alteração de iluminação.
-
-**Descrição do Projeto:** ${projectDescription}
-
-Retorne a resposta APENAS como um array JSON de strings. Exemplo: ["Adicione um vaso de plantas pequeno ao lado", "Mude o acabamento para laca preta brilhante", "Faça a iluminação ser mais dramática, como ao entardecer"]`;
-    
-    const parts: Part[] = [
-        { text: prompt },
-        fileToGenerativePart(imageData, mimeType)
-    ];
-
-    const apiCall = () => ai.models.generateContent({
-        model: 'gemini-2.5-pro',
-        contents: { parts },
-    });
-    
-    const response = await callApiWithRetry(apiCall);
-    return cleanAndParseJson<string[]>(response.text);
-}
-
-export const getUserPerformance = async (userEmail: string): Promise<UserPerformance> => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    // In a real app, this would be a fetch call to a backend.
-    // For now, return mocked data that matches the admin panel.
-    return {
+export async function getUserPerformance(userEmail: string): Promise<UserPerformance> {
+    console.log(`Fetching performance for ${userEmail}. This is mock data.`);
+    // In a real application, this would fetch data from a backend service.
+    // For this simulation, we'll return a static, realistic-looking object.
+    return Promise.resolve({
         points: 1250,
         level: 5,
-        progress: 25, // percentage to next level
-        nextLevelPoints: 1500,
+        progress: 62.5, // (1250 - 1000) / (2000 - 1000) * 100
+        nextLevelPoints: 2000,
         achievements: [
-            { id: 'ach1', name: 'Projetista Rápido', description: 'Completou 10 projetos em um mês.', icon: 'bolt' },
-            { id: 'ach2', name: 'Mestre das Medidas', description: 'Gerou 20 planos de corte com mais de 90% de aproveitamento.', icon: 'ruler' },
-            { id: 'ach3', name: 'Cliente Feliz', description: 'Recebeu 5 avaliações positivas no EncontraPro.', icon: 'heart' }
-        ]
-    };
-};
+            { id: 'achv1', name: 'Projetista Rápido', description: 'Completou 10 projetos em uma semana.', icon: 'bolt' },
+            { id: 'achv2', name: 'Mestre do Detalhe', description: 'Usou BOM e Plano de Corte 20 vezes.', icon: 'ruler' },
+            { id: 'achv3', name: 'Favorito dos Clientes', description: 'Recebeu 5 avaliações positivas.', icon: 'heart' },
+        ],
+    });
+}

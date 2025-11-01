@@ -5,7 +5,7 @@ import type { AlertState, ImageModalState, ProjectHistoryItem, Finish, Client, P
 
 // Services
 import { projectTypePresets, initialStylePresets } from './services/presetService.ts';
-import { generateImage, generateText, editImage, generateCuttingPlan, editFloorPlan, estimateProjectCosts, generateAssemblyDetails, parseBomToList, findSupplierPrice, calculateFinancialSummary, fetchSupplierCatalog, calculateShippingCost, suggestAlternativeStyles, generateFloorPlanFrom3D, generate3Dfrom2D } from './services/geminiService.ts';
+import { generateImage, generateText, editImage, generateCuttingPlan, editFloorPlan, estimateProjectCosts, generateAssemblyDetails, parseBomToList, findSupplierPrice, calculateFinancialSummary, fetchSupplierCatalog, calculateShippingCost, suggestAlternativeStyles, generateFloorPlanFrom3D, generate3Dfrom2D, suggestImageEdits, generateBom } from './services/geminiService.ts';
 import { getHistory, addProjectToHistory, updateProjectInHistory, removeProjectFromHistory, getClients, saveClient, removeClient, getFavoriteFinishes, addFavoriteFinish, removeFavoriteFinish } from './services/historyService.ts';
 import { convertMarkdownToHtml } from './utils/helpers.ts';
 import { useTranslation } from './contexts/I18nContext.tsx';
@@ -76,7 +76,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
     const [isResearchAssistantOpen, setIsResearchAssistantOpen] = useState(false);
     const [isDistributorFinderOpen, setIsDistributorFinderOpen] = useState(false);
     const [isClientPanelOpen, setIsClientPanelOpen] = useState(false);
-    const [imageEditorState, setImageEditorState] = useState<{ isOpen: boolean, src: string }>({ isOpen: false, src: '' });
+    const [imageEditorState, setImageEditorState] = useState<{ isOpen: boolean, src: string, initialPrompt?: string }>({ isOpen: false, src: '' });
     const [layoutEditorState, setLayoutEditorState] = useState<{ isOpen: boolean, src: string }>({ isOpen: false, src: '' });
     const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
     const [isNewViewModalOpen, setIsNewViewModalOpen] = useState(false);
@@ -94,6 +94,11 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
     const [is3DFrom2DModalOpen, setIs3DFrom2DModalOpen] = useState(false);
     const [isGenerating3D, setIsGenerating3D] = useState(false);
     const [isAdminView, setIsAdminView] = useState(false);
+    const [isSuggestionsModalOpen, setIsSuggestionsModalOpen] = useState(false);
+    const [editSuggestions, setEditSuggestions] = useState<string[]>([]);
+    const [isSuggestingEdits, setIsSuggestingEdits] = useState(false);
+    const [suggestionTargetImage, setSuggestionTargetImage] = useState<string | null>(null);
+
 
     // Theme
     const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -232,6 +237,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
             if (updatedProject) {
                 setCurrentProject(updatedProject);
                 setHistory(await getHistory());
+                setViewMode('2d'); // Switch to the new 2D view automatically
             }
         } catch (error) {
             showAlert(error instanceof Error ? error.message : 'Erro ao gerar planta baixa.');
@@ -309,14 +315,56 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         }
     };
 
+    const handleSaveBom = async (bom: string) => {
+        if (!currentProject) return;
+        try {
+            const updatedProject = await updateProjectInHistory(currentProject.id, { bom });
+            if (updatedProject) {
+                setCurrentProject(updatedProject);
+                setHistory(await getHistory());
+                showAlert('Lista de Materiais salva com sucesso no projeto!', 'Sucesso');
+            }
+        } catch (error) {
+            showAlert(error instanceof Error ? error.message : 'Erro ao salvar a BOM.');
+        }
+    };
+
+    const handleOpenEditSuggestions = async (imageSrc: string) => {
+        if (!currentProject) return;
+        setIsSuggestingEdits(true);
+        setIsSuggestionsModalOpen(true);
+        setEditSuggestions([]);
+        setSuggestionTargetImage(imageSrc);
+        try {
+            const suggestions = await suggestImageEdits(currentProject.description, imageSrc);
+            setEditSuggestions(suggestions);
+        } catch (error) {
+            showAlert(error instanceof Error ? error.message : "Falha ao obter sugestões.");
+            setIsSuggestionsModalOpen(false);
+        } finally {
+            setIsSuggestingEdits(false);
+        }
+    };
+    
+    const handleSelectSuggestion = (suggestion: string) => {
+        setIsSuggestionsModalOpen(false);
+        if (suggestionTargetImage) {
+            setImageEditorState({ isOpen: true, src: suggestionTargetImage, initialPrompt: suggestion });
+        }
+        setEditSuggestions([]);
+        setSuggestionTargetImage(null);
+    };
+
+
     // --- SUB-COMPONENTS ---
     const Project3DViewer: React.FC<{
         views: string[];
         onEditClick: (src: string) => void;
         onARClick: (src: string) => void;
         onNewViewClick: () => void;
+        onSuggestEditsClick: (src: string) => void;
         projectName: string;
-      }> = ({ views, onEditClick, onARClick, onNewViewClick, projectName }) => {
+      }> = ({ views, onEditClick, onARClick, onNewViewClick, onSuggestEditsClick, projectName }) => {
           const [activeIndex, setActiveIndex] = useState(0);
           const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
           const actionMenuRef = useRef<HTMLDivElement>(null);
@@ -365,6 +413,9 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                                   </button>
                                   <button onClick={() => handleActionClick(onNewViewClick)} className="w-full text-left flex items-center gap-3 px-3 py-2 rounded text-sm text-[#3e3535] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#5a4f4f]" role="menuitem">
                                       <WandIcon /> Nova Vista
+                                  </button>
+                                  <button onClick={() => handleActionClick(() => onSuggestEditsClick(activeView))} className="w-full text-left flex items-center gap-3 px-3 py-2 rounded text-sm text-[#3e3535] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#5a4f4f]" role="menuitem">
+                                    <SparklesIcon /> Sugerir Edições
                                   </button>
                                   <button onClick={() => handleActionClick(() => onEditClick(activeView))} className="w-full text-left flex items-center gap-3 px-3 py-2 rounded text-sm text-[#3e3535] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#5a4f4f]" role="menuitem">
                                       <WandIcon /> Editar com Iara
@@ -546,17 +597,54 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
           return (<div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={onClose}><div className="bg-[#fffefb] dark:bg-[#4a4040] rounded-lg w-full max-w-4xl max-h-[90vh] shadow-xl border border-[#e6ddcd] dark:border-[#4a4040] flex flex-col" onClick={e => e.stopPropagation()}><header className="p-4 border-b border-[#e6ddcd] dark:border-[#4a4040] flex justify-between items-center"><h2 className="text-xl font-bold text-[#b99256] dark:text-[#d4ac6e] flex items-center gap-2"><DollarCircleIcon /> Cotação de Preços com Fornecedores</h2><button onClick={onClose} className="text-[#a89d8d] hover:text-[#3e3535] dark:hover:text-white text-2xl">&times;</button></header><main className="p-6 flex-grow overflow-y-auto"><div className="overflow-x-auto"><table className="w-full text-left table-auto"><thead><tr className="border-b-2 border-[#e6ddcd] dark:border-[#4a4040]"><th className="p-2">Item</th><th className="p-2">Qtde</th><th className="p-2">Dimensões</th><th className="p-2">Preço Unit.</th><th className="p-2">Fornecedor</th><th className="p-2">Ação</th></tr></thead><tbody>{isParsing ? (<tr><td colSpan={6} className="text-center p-8"><Spinner /></td></tr>) : (pricedItems.map((item, index) => (<tr key={index} className="border-b border-[#e6ddcd] dark:border-[#4a4040]"><td className="p-2">{item.item}</td><td className="p-2">{item.qty}</td><td className="p-2">{item.dimensions}</td><td className="p-2">{item.price ? `R$ ${item.price.toFixed(2)}` : 'N/A'}</td><td className="p-2">{item.url ? <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-amber-600 dark:text-amber-400 hover:underline">{item.supplier}</a> : item.supplier || 'N/A'}</td><td className="p-2"><button onClick={() => handleFindPrice(index)} disabled={item.isSearching} className="bg-[#d4ac6e] hover:bg-[#c89f5e] text-[#3e3535] text-sm py-1 px-2 rounded disabled:opacity-50 flex items-center gap-1">{item.isSearching ? <Spinner size="sm"/> : <SearchIcon/>} {item.isSearching ? 'Buscando' : 'Buscar'}</button></td></tr>)))}</tbody></table></div></main><footer className="p-4 border-t border-[#e6ddcd] dark:border-[#4a4040] flex justify-between items-center"><div className="text-lg">Custo Total dos Materiais: <span className="font-bold text-[#b99256] dark:text-[#d4ac6e]">R$ {newTotalCost.toFixed(2)}</span></div><div className="flex gap-4"><button onClick={onClose} className="bg-[#8a7e7e] dark:bg-[#5a4f4f] text-white font-bold py-2 px-4 rounded hover:bg-[#6a5f5f] dark:hover:bg-[#4a4040] transition">Cancelar</button><button onClick={() => { onUpdateCosts(newTotalCost); onClose(); }} className="bg-[#3e3535] dark:bg-[#d4ac6e] text-white dark:text-[#3e3535] font-bold py-2 px-4 rounded hover:bg-[#2d2424] dark:hover:bg-[#c89f5e] transition">Atualizar Custos</button></div></footer></div></div>);
       };
       
-      const StyleSuggestionsModal: React.FC<{
-          isOpen: boolean;
-          isLoading: boolean;
-          suggestions: string[];
-          onClose: () => void;
-          onSelectStyle: (style: string) => void;
-      }> = ({ isOpen, isLoading, suggestions, onClose, onSelectStyle }) => {
-          if (!isOpen) return null;
-          // ... implementation from original file
-          return <div>Style Suggestions Modal</div>
-      };
+    const StyleSuggestionsModal: React.FC<{
+        isOpen: boolean;
+        isLoading: boolean;
+        suggestions: string[];
+        onClose: () => void;
+        onSelectSuggestion: (suggestion: string) => void;
+        title: string;
+    }> = ({ isOpen, isLoading, suggestions, onClose, onSelectSuggestion, title }) => {
+        if (!isOpen) return null;
+
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex justify-center items-center p-4 animate-fadeIn" onClick={onClose}>
+                <div 
+                    className="bg-[#fffefb] dark:bg-[#4a4040] rounded-lg w-full max-w-lg shadow-xl border border-[#e6ddcd] dark:border-[#4a4040]"
+                    onClick={e => e.stopPropagation()}
+                >
+                    <header className="p-4 border-b border-[#e6ddcd] dark:border-[#4a4040] flex justify-between items-center">
+                        <h2 className="text-xl font-bold text-[#b99256] dark:text-[#d4ac6e] flex items-center gap-2">
+                            <SparklesIcon /> {title}
+                        </h2>
+                        <button onClick={onClose} className="text-[#a89d8d] hover:text-[#3e3535] dark:hover:text-white text-2xl">&times;</button>
+                    </header>
+                    <main className="p-6">
+                        {isLoading ? (
+                            <div className="flex flex-col items-center justify-center h-48">
+                                <Spinner />
+                                <p className="mt-4 text-[#8a7e7e] dark:text-[#a89d8d]">Iara está pensando nas melhores sugestões...</p>
+                            </div>
+                        ) : suggestions.length > 0 ? (
+                            <div className="space-y-3">
+                                {suggestions.map((suggestion, index) => (
+                                    <button
+                                        key={index}
+                                        onClick={() => onSelectSuggestion(suggestion)}
+                                        className="w-full text-left bg-[#f0e9dc] dark:bg-[#3e3535] text-[#3e3535] dark:text-[#f5f1e8] p-4 rounded-lg hover:bg-[#e6ddcd] dark:hover:bg-[#5a4f4f] transition-colors"
+                                    >
+                                        {suggestion}
+                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                             <p className="text-center text-[#8a7e7e] dark:text-[#a89d8d]">Nenhuma sugestão foi gerada. Tente novamente.</p>
+                        )}
+                    </main>
+                </div>
+            </div>
+        );
+    };
 
     return (
         <div className={`min-h-screen bg-[#f5f1e8] dark:bg-[#2d2424] text-[#3e3535] dark:text-[#f5f1e8] transition-colors duration-300`}>
@@ -674,7 +762,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                                         </div>
                                         
                                         {viewMode === '3d' ? (
-                                            <Project3DViewer views={currentProject.views3d} onEditClick={(src) => setImageEditorState({isOpen: true, src})} onARClick={(src) => setArViewerState({isOpen: true, src})} onNewViewClick={() => setIsNewViewModalOpen(true)} projectName={currentProject.name} />
+                                            <Project3DViewer views={currentProject.views3d} onEditClick={(src) => setImageEditorState({isOpen: true, src})} onARClick={(src) => setArViewerState({isOpen: true, src})} onNewViewClick={() => setIsNewViewModalOpen(true)} onSuggestEditsClick={handleOpenEditSuggestions} projectName={currentProject.name} />
                                         ) : (
                                             <Project2DViewer src={currentProject.image2d!} onEditClick={(src) => setLayoutEditorState({isOpen: true, src})} onGenerate3DClick={() => setIs3DFrom2DModalOpen(true)} projectName={currentProject.name}/>
                                         )}
@@ -720,11 +808,11 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
             <ResearchAssistant isOpen={isResearchAssistantOpen} onClose={() => setIsResearchAssistantOpen(false)} showAlert={showAlert} />
             <DistributorFinder isOpen={isDistributorFinderOpen} onClose={() => setIsDistributorFinderOpen(false)} showAlert={showAlert} />
             <ClientPanel isOpen={isClientPanelOpen} onClose={() => setIsClientPanelOpen(false)} clients={clients} projects={history} onSaveClient={async (c) => setClients(await saveClient(c))} onDeleteClient={async (id) => setClients(await removeClient(id))} onViewProject={handleViewProject} />
-            {currentProject && <ImageEditor isOpen={imageEditorState.isOpen} imageSrc={imageEditorState.src} projectDescription={currentProject.description} onClose={() => setImageEditorState({isOpen: false, src: ''})} onSave={handleSaveEditedImage} showAlert={showAlert} />}
+            {currentProject && <ImageEditor isOpen={imageEditorState.isOpen} imageSrc={imageEditorState.src} projectDescription={currentProject.description} onClose={() => setImageEditorState({isOpen: false, src: ''})} onSave={handleSaveEditedImage} showAlert={showAlert} initialPrompt={imageEditorState.initialPrompt} />}
             {currentProject && <LayoutEditor isOpen={layoutEditorState.isOpen} floorPlanSrc={layoutEditorState.src} projectDescription={currentProject.description} onClose={() => setLayoutEditorState({isOpen: false, src: ''})} onSave={handleSaveEditedLayout} showAlert={showAlert} />}
             {currentProject && <ProposalModal isOpen={isProposalModalOpen} onClose={() => setIsProposalModalOpen(false)} project={currentProject} client={currentClient} showAlert={showAlert} />}
             {currentProject && <NewViewGenerator isOpen={isNewViewModalOpen} onClose={() => setIsNewViewModalOpen(false)} project={currentProject} onSaveComplete={async () => setHistory(await getHistory())} showAlert={showAlert}/>}
-            {currentProject && <BomGeneratorModal isOpen={isBomGeneratorModalOpen} onClose={() => setIsBomGeneratorModalOpen(false)} showAlert={showAlert} />}
+            {currentProject && <BomGeneratorModal isOpen={isBomGeneratorModalOpen} onClose={() => setIsBomGeneratorModalOpen(false)} showAlert={showAlert} project={currentProject} onSave={handleSaveBom} />}
             {currentProject && <CuttingPlanGeneratorModal isOpen={isCuttingPlanGeneratorModalOpen} onClose={() => setIsCuttingPlanGeneratorModalOpen(false)} showAlert={showAlert} project={currentProject} onSave={handleSaveCuttingPlan} />}
             {currentProject && <CostEstimatorModal isOpen={isCostEstimatorModalOpen} onClose={() => setIsCostEstimatorModalOpen(false)} showAlert={showAlert} />}
             <ARViewer isOpen={arViewerState.isOpen} onClose={() => setArViewerState({ isOpen: false, src: '' })} imageSrc={arViewerState.src} showAlert={showAlert} />
@@ -741,6 +829,14 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                     isGenerating={isGenerating3D}
                 />
             )}
+             <StyleSuggestionsModal
+                isOpen={isSuggestionsModalOpen}
+                isLoading={isSuggestingEdits}
+                suggestions={editSuggestions}
+                onClose={() => setIsSuggestionsModalOpen(false)}
+                onSelectSuggestion={handleSelectSuggestion}
+                title="Sugestões da Iara"
+            />
 
             {/* Early Access Modals */}
              <EarlyAccessModal isOpen={isAutoPurchaseModalOpen} onClose={() => setIsAutoPurchaseModalOpen(false)} title="Compra Automática de Materiais">

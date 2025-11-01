@@ -10,31 +10,31 @@ const plans = [
   {
     name: 'Hobby',
     price: 'Grátis',
-    priceDescription: 'para sempre',
+    priceDescription: 'para começar',
     description: 'Ideal para entusiastas e projetos pessoais.',
     features: [
-      '5 projetos por mês',
-      'Geração de imagens 3D',
-      'Geração de planta baixa 2D',
+      'Até 5 projetos por mês',
+      'Imagens 3D dos móveis',
+      'Planta baixa 2D automática',
       'Histórico de projetos',
-      'Suporte da comunidade',
+      'Suporte pela comunidade',
     ],
-    cta: 'Começar Agora',
+    cta: 'Começar Gratuitamente',
     planId: 'hobby',
   },
   {
     name: 'Profissional',
-    price: 'R$ 49,90',
+    price: 'R$ 119,90',
     priceDescription: '/mês',
     description: 'Para marceneiros autônomos e designers.',
     features: [
       'Projetos ilimitados',
       'Todas as funcionalidades do Hobby',
-      'Geração de BOM e Plano de Corte',
-      'Estimativa de Custos',
-      'Gerenciamento de Clientes',
+      'BOM e plano de corte otimizado',
+      'Estimativa de custos automatizada',
+      'Gerenciamento de clientes',
       'Propostas em PDF',
-      'Suporte prioritário por e-mail',
+      'Suporte por e-mail prioritário',
     ],
     cta: 'Escolher Profissional',
     planId: 'pro',
@@ -42,13 +42,13 @@ const plans = [
   },
   {
     name: 'Oficina',
-    price: 'R$ 149,90',
+    price: 'R$ 399,90',
     priceDescription: '/mês',
     description: 'Para marcenarias com equipes e alto volume.',
     features: [
-      'Todas as funcionalidades do Profissional',
+      'Todos os recursos do Profissional',
       'Ferramentas para equipes (Em breve)',
-      'Relatórios Avançados de Produtividade',
+      'Relatórios avançados de produtividade',
       'Compra automática de materiais (Beta)',
       'Integração WhatsApp (Beta)',
       'Acesso antecipado a novas funcionalidades',
@@ -57,6 +57,7 @@ const plans = [
     planId: 'business',
   },
 ];
+
 
 const PlanCard: React.FC<{ plan: typeof plans[0]; onSelect: () => void; }> = ({ plan, onSelect }) => {
   const isPopular = plan.popular;
@@ -69,7 +70,8 @@ const PlanCard: React.FC<{ plan: typeof plans[0]; onSelect: () => void; }> = ({ 
       )}
       <div className="flex-grow">
         <h3 className="text-2xl font-bold font-serif text-center text-[#3e3535] dark:text-[#f5f1e8]">{plan.name}</h3>
-        <div className="mt-4 text-center">
+        <div className="mt-4 text-center flex items-baseline justify-center gap-2">
+          
           <span className="text-4xl font-bold">{plan.price}</span>
           <span className="text-lg text-[#6a5f5f] dark:text-[#c7bca9]">{plan.priceDescription}</span>
         </div>
@@ -104,7 +106,7 @@ const FeatureCard: React.FC<{ icon: React.ReactNode; title: string; children: Re
 );
 
 const TestimonialCard: React.FC<{ quote: string; name: string; role: string; }> = ({ quote, name, role }) => (
-    <div className="bg-[#fffefb] dark:bg-[#3e3535] p-6 rounded-lg border border-[#e6ddcd] dark:border-[#4a4040] shadow-md">
+    <div className="bg-[#fffefb]/70 dark:bg-[#3e3535]/70 p-6 rounded-lg border border-[#e6ddcd] dark:border-[#4a4040] shadow-md backdrop-blur-sm">
         <div className="flex text-yellow-500 mb-4">
             <StarIcon isFavorite /> <StarIcon isFavorite /> <StarIcon isFavorite /> <StarIcon isFavorite /> <StarIcon isFavorite />
         </div>
@@ -166,7 +168,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
 
             <main>
                 {/* Hero Section */}
-                <section className="py-20 md:py-28 px-6" style={{ backgroundImage: 'radial-gradient(circle, rgba(212,172,110,0.08) 0%, rgba(245,241,232,0) 60%)' }}>
+                <section className="py-20 md:py-28 px-6 bg-[#fffefb] dark:bg-[#3e3535]">
                     <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                         <div className="text-center md:text-left animate-slideInLeft">
                              <h2 className="text-4xl md:text-6xl font-bold font-serif mb-4" dangerouslySetInnerHTML={{ __html: t('hero_title').replace('Em Minutos.', '<span class="text-[#b99256] dark:text-[#d4ac6e]">In Minutes.</span>').replace('In Minutes.', '<span class="text-[#b99256] dark:text-[#d4ac6e]">Em Minutos.</span>') }} />
@@ -220,28 +222,70 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                     </div>
                 </section>
 
-                {/* Testimonials Section */}
-                <section id="testimonials" className="py-20 px-6">
-                     <div className="max-w-6xl mx-auto">
-                        <div className="text-center mb-12">
-                            <h2 className="text-3xl md:text-4xl font-bold font-serif">O que os Marceneiros Dizem</h2>
+                 {/* How It Works Section */}
+                <section className="py-20 px-6">
+                    <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                        <div className="animate-slideInLeft">
+                            <img 
+                                src="https://images.unsplash.com/photo-1596079890744-c1a0462d0975?q=80&w=1771&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" 
+                                alt="Interior moderno com móveis planejados" 
+                                className="rounded-xl shadow-2xl shadow-stone-400/30 dark:shadow-black/40 aspect-square object-cover"
+                            />
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            <TestimonialCard 
-                                name="Carlos Ferreira"
-                                role="Marceneiro, 15 anos de experiência"
-                                quote="O MarcenApp reduziu o tempo que eu levava para fazer propostas de 2 dias para 30 minutos. Meus clientes ficam impressionados com o 3D."
-                            />
-                             <TestimonialCard 
-                                name="Juliana Andrade"
-                                role="Designer de Móveis"
-                                quote="A geração da lista de materiais e do plano de corte é fantástica. Acabou o erro de cálculo na hora de comprar as chapas. A economia é real."
-                            />
-                             <TestimonialCard 
-                                name="Ricardo Martins"
-                                role="Dono de Marcenaria"
-                                quote="Consigo apresentar projetos muito mais profissionais e fechar mais negócios. É como ter um designer e um engenheiro na equipe."
-                            />
+                        <div className="animate-slideInRight">
+                            <h2 className="text-3xl md:text-4xl font-bold font-serif mb-6">Do Rascunho à Realidade em 3 Passos</h2>
+                            <div className="space-y-6">
+                                <div className="flex items-start">
+                                    <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-[#e6ddcd] dark:bg-[#4a4040] text-[#b99256] dark:text-[#d4ac6e] font-bold text-xl mr-4">1</div>
+                                    <div>
+                                        <h3 className="font-bold text-lg">Descreva sua Ideia</h3>
+                                        <p className="text-[#6a5f5f] dark:text-[#c7bca9]">Use texto, voz, fotos ou rascunhos. A Iara entende sua visão e a transforma em um conceito inicial.</p>
+                                    </div>
+                                </div>
+                                 <div className="flex items-start">
+                                    <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-[#e6ddcd] dark:bg-[#4a4040] text-[#b99256] dark:text-[#d4ac6e] font-bold text-xl mr-4">2</div>
+                                    <div>
+                                        <h3 className="font-bold text-lg">Gere e Refine o Projeto</h3>
+                                        <p className="text-[#6a5f5f] dark:text-[#c7bca9]">Receba imagens 3D fotorrealistas e plantas 2D. Edite e ajuste detalhes com a ajuda da IA até ficar perfeito.</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-start">
+                                    <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-[#e6ddcd] dark:bg-[#4a4040] text-[#b99256] dark:text-[#d4ac6e] font-bold text-xl mr-4">3</div>
+                                    <div>
+                                        <h3 className="font-bold text-lg">Prepare para a Produção</h3>
+                                        <p className="text-[#6a5f5f] dark:text-[#c7bca9]">Com um clique, obtenha a lista de materiais, plano de corte e a proposta comercial para seu cliente.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Testimonials Section */}
+                <section id="testimonials" className="py-20 px-6 bg-cover bg-center relative" style={{backgroundImage: 'url(https://images.unsplash.com/photo-1616046229478-9901c5536a45?q=80&w=1780&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D)'}}>
+                     <div className="max-w-6xl mx-auto relative grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                        <div>
+                            <h2 className="text-3xl md:text-4xl font-bold font-serif mb-8">O que os Marceneiros Dizem</h2>
+                            <div className="space-y-8">
+                                <TestimonialCard 
+                                    name="Carlos Ferreira"
+                                    role="Marceneiro, 15 anos de experiência"
+                                    quote="O MarcenApp reduziu o tempo que eu levava para fazer propostas de 2 dias para 30 minutos. Meus clientes ficam impressionados com o 3D."
+                                />
+                                 <TestimonialCard 
+                                    name="Juliana Andrade"
+                                    role="Designer de Móveis"
+                                    quote="A geração da lista de materiais e do plano de corte é fantástica. Acabou o erro de cálculo na hora de comprar as chapas. A economia é real."
+                                />
+                                 <TestimonialCard 
+                                    name="Ricardo Martins"
+                                    role="Dono de Marcenaria"
+                                    quote="Consigo apresentar projetos muito mais profissionais e fechar mais negócios. É como ter um designer e um engenheiro na equipe."
+                                />
+                            </div>
+                        </div>
+                        <div className="hidden lg:block">
+                            {/* This is a spacer column, the background image fills the space */}
                         </div>
                      </div>
                 </section>

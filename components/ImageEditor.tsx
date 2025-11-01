@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { editImage, suggestImageEdits } from '../services/geminiService';
 import { Spinner, WandIcon, SparklesIcon } from './Shared';
 
@@ -9,14 +9,24 @@ interface ImageEditorProps {
     onClose: () => void;
     onSave: (newImageBase64: string) => void;
     showAlert: (message: string, title?: string) => void;
+    initialPrompt?: string;
 }
 
-export const ImageEditor: React.FC<ImageEditorProps> = ({ isOpen, imageSrc, projectDescription, onClose, onSave, showAlert }) => {
+export const ImageEditor: React.FC<ImageEditorProps> = ({ isOpen, imageSrc, projectDescription, onClose, onSave, showAlert, initialPrompt }) => {
     const [prompt, setPrompt] = useState('');
     const [isEditing, setIsEditing] = useState(false);
     const [editedImageSrc, setEditedImageSrc] = useState<string | null>(null);
     const [suggestions, setSuggestions] = useState<string[]>([]);
     const [isSuggesting, setIsSuggesting] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) {
+            setPrompt(initialPrompt || '');
+            setEditedImageSrc(null);
+            setSuggestions([]);
+        }
+    }, [isOpen, initialPrompt]);
+
 
     const handleSuggestEdits = async () => {
         setIsSuggesting(true);
@@ -59,9 +69,6 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ isOpen, imageSrc, proj
     }
 
     const handleClose = () => {
-        setPrompt('');
-        setEditedImageSrc(null);
-        setSuggestions([]);
         onClose();
     }
 

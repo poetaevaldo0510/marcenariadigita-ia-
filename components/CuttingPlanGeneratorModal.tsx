@@ -15,7 +15,7 @@ interface CuttingPlanGeneratorModalProps {
 export const CuttingPlanGeneratorModal: React.FC<CuttingPlanGeneratorModalProps> = ({ isOpen, onClose, showAlert, project, onSave }) => {
     const [bomInput, setBomInput] = useState('');
     const [sheetWidth, setSheetWidth] = useState(2750);
-    const [sheetHeight, setSheetHeight] = useState(1830);
+    const [sheetHeight, setSheetHeight] = useState(1850);
     const [generatedPlan, setGeneratedPlan] = useState<string | null>(null);
     const [generatedPlanImage, setGeneratedPlanImage] = useState<string | null>(null);
     const [generatedOptimization, setGeneratedOptimization] = useState<string | null>(null);
@@ -33,7 +33,7 @@ export const CuttingPlanGeneratorModal: React.FC<CuttingPlanGeneratorModalProps>
             setBomInput(project.bom);
             // Set default dimensions as requested
             setSheetWidth(2750);
-            setSheetHeight(1830);
+            setSheetHeight(1850);
             
             // Load existing plan if available
             setGeneratedPlan(project.cuttingPlan || null);
