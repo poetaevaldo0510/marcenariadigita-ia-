@@ -93,6 +93,18 @@ export const Header: React.FC<HeaderProps> = ({ userEmail, isAdmin, onOpenResear
                             </button>
                         </nav>
                         
+                        {/* Admin Button - more visible */}
+                        {isAdmin && (
+                            <button 
+                                onClick={onOpenAdmin}
+                                className="hidden md:flex items-center gap-2 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 font-semibold py-2 px-3 rounded-lg hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors ml-2"
+                                title="Painel Administrativo"
+                            >
+                                <CogIcon className="w-5 h-5" />
+                                <span>Admin</span>
+                            </button>
+                        )}
+                        
                         {/* User Menu */}
                         <div className="relative" ref={menuRef}>
                             <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="flex items-center gap-2 bg-[#e6ddcd] dark:bg-[#4a4040] py-2 px-3 rounded-full hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f] transition-colors">

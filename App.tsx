@@ -448,10 +448,14 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   }, []);
 
   const handleTranscriptUpdate = (transcript: string, isFinal: boolean) => {
-    const newText = descriptionBeforeSpeechRef.current + transcript;
-    setProjectDescription(newText);
-    if (isFinal) {
-        descriptionBeforeSpeechRef.current = newText.trim() ? newText.trim() + ' ' : '';
+    if (!isFinal) {
+      // `transcript` is the full text spoken during THIS session.
+      setProjectDescription(descriptionBeforeSpeechRef.current + transcript);
+    } else {
+      // Session ended. `projectDescription` has the final, full text.
+      // Update the ref for the next session.
+      const final_text = projectDescription.trim();
+      descriptionBeforeSpeechRef.current = final_text ? final_text + ' ' : '';
     }
   };
 

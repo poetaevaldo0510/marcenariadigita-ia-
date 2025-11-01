@@ -11,7 +11,6 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({ onRecordingS
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef<any>(null);
-  const fullTranscriptRef = useRef('');
 
   useEffect(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -25,19 +24,12 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({ onRecordingS
     recognition.lang = 'pt-BR';
     
     recognition.onresult = (event: any) => {
-      let interim_transcript = '';
-      let final_transcript_part = '';
-
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          final_transcript_part += transcript;
-        } else {
-          interim_transcript += transcript;
-        }
+      let fullTranscriptForSession = '';
+      for (let i = 0; i < event.results.length; i++) {
+        fullTranscriptForSession += event.results[i][0].transcript;
       }
-      fullTranscriptRef.current += final_transcript_part;
-      onTranscriptUpdate(fullTranscriptRef.current + interim_transcript, false);
+      // This sends the complete, self-correcting text for the entire session
+      onTranscriptUpdate(fullTranscriptForSession, false); 
     };
 
     recognition.onspeechstart = () => setIsSpeaking(true);
@@ -47,7 +39,8 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({ onRecordingS
     recognition.onend = () => {
       setIsRecording(false);
       setIsSpeaking(false);
-      onTranscriptUpdate(fullTranscriptRef.current, true);
+      // Signal to parent component that speech has ended and state can be finalized.
+      onTranscriptUpdate('', true);
     };
 
     recognition.onerror = (event: any) => {
@@ -82,7 +75,6 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({ onRecordingS
       recognitionRef.current.stop();
     } else {
       try {
-        fullTranscriptRef.current = '';
         onRecordingStart();
         recognitionRef.current.start();
       } catch (error) {

@@ -1,8 +1,9 @@
-const CACHE_NAME = 'marcenapp-cache-v2';
+const CACHE_NAME = 'marcenapp-cache-v3';
+const APP_SHELL_URL = '/index.html';
 
 const STATIC_ASSETS_TO_PRECACHE = [
   '/',
-  '/index.html'
+  APP_SHELL_URL
 ];
 
 
@@ -40,45 +41,48 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') {
     return;
   }
-  
-  if (event.request.url.includes('generativelanguage.googleapis.com')) {
-    event.respondWith(fetch(event.request));
-    return;
-  }
 
-  event.respondWith(
-    caches.match(event.request)
-      .then(cachedResponse => {
-        // Cache hit, return response
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-
-        // Not in cache, go to network
-        return fetch(event.request).then(
-          networkResponse => {
-            // Check if we received a valid response
-            if (!networkResponse || networkResponse.status !== 200) {
-              return networkResponse;
-            }
-
-            // Cache the new response for future use
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME)
-              .then(cache => {
-                cache.put(event.request, responseToCache);
-              });
-            
+  // For navigation requests, serve the app shell as a fallback.
+  // This is crucial for single-page applications.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      (async () => {
+        try {
+          // Try the network first.
+          const networkResponse = await fetch(event.request);
+          // A 404 from the server for a navigation is an error for an SPA.
+          // We should serve the app shell instead.
+          if (networkResponse.ok) {
             return networkResponse;
           }
-        ).catch(error => {
-          console.log('Fetch failed; app is running offline.', error);
-          // If a navigation request fails, serve the main index.html as a fallback.
-          // This allows the SPA to load and handle the route, even offline.
-          if (event.request.mode === 'navigate') {
-            return caches.match('/');
-          }
-        });
-      })
+          // If we get a 404 or other error, fall through to the cache.
+        } catch (error) {
+          // The network failed. We'll try the cache.
+          console.log('Fetch failed for navigation, falling back to cache.', error);
+        }
+
+        // Fallback to the cached app shell.
+        const cache = await caches.open(CACHE_NAME);
+        const cachedResponse = await cache.match(APP_SHELL_URL);
+        return cachedResponse;
+      })()
+    );
+    return;
+  }
+  
+  // For non-navigation requests (assets), use a cache-first strategy.
+  event.respondWith(
+    caches.match(event.request).then(response => {
+      return response || fetch(event.request).then(fetchResponse => {
+        // Cache the new response if it's valid and not a Google API call
+        if (fetchResponse && fetchResponse.status === 200 && !event.request.url.includes('googleapis.com')) {
+          const responseToCache = fetchResponse.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseToCache);
+          });
+        }
+        return fetchResponse;
+      });
+    })
   );
 });
