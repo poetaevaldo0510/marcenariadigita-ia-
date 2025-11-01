@@ -59,7 +59,6 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
   }, []);
   
   // --- MOUSE EVENT LISTENERS (ATTACHED TO WINDOW FOR ROBUST DRAGGING) ---
-  // Fix: Added event parameter 'e' to the mouse move handler and completed the component implementation.
   const handleWindowMouseMove = useCallback((e: globalThis.MouseEvent) => {
     if (!isInteracting) return;
     const dx = e.clientX - interactionStartRef.current.startX;
@@ -211,4 +210,27 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
       
       {/* Controls */}
       <div ref={controlsRef} className="absolute bottom-3 right-3 z-10 flex flex-col items-end gap-2">
-        <div className="flex flex-col gap-1 p-1 bg-[#3
+        <div className="flex flex-col gap-1 p-1 bg-[#3e3535]/70 backdrop-blur-sm rounded-lg">
+          <button onClick={() => handleZoom('in')} className="p-2 text-white hover:bg-white/20 rounded-md" title="Aumentar Zoom"><ZoomInIcon /></button>
+          <button onClick={() => handleZoom('out')} className="p-2 text-white hover:bg-white/20 rounded-md" title="Diminuir Zoom"><ZoomOutIcon /></button>
+          <button onClick={resetTransform} className="p-2 text-white hover:bg-white/20 rounded-md" title="Resetar Zoom"><ResetZoomIcon /></button>
+        </div>
+        <div className="relative">
+            <button onClick={() => setShowShareMenu(prev => !prev)} className="p-3 bg-[#3e3535]/70 backdrop-blur-sm rounded-full text-white hover:bg-white/20" title="Compartilhar">
+                <ShareIcon />
+            </button>
+            {showShareMenu && (
+                <div className="absolute bottom-full right-0 mb-2 w-48 bg-[#fffefb] dark:bg-[#4a4040] rounded-lg shadow-xl p-1 z-20 animate-scaleIn" style={{transformOrigin: 'bottom right'}}>
+                    <button onClick={() => handleShare('download')} className="w-full text-left flex items-center gap-3 px-3 py-2 rounded text-sm text-[#3e3535] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#5a4f4f]"><DownloadIcon /> Baixar Imagem</button>
+                    <button onClick={() => handleShare('whatsapp')} className="w-full text-left flex items-center gap-3 px-3 py-2 rounded text-sm text-[#3e3535] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#5a4f4f]"><WhatsappIcon /> WhatsApp</button>
+                    <button onClick={() => handleShare('email')} className="w-full text-left flex items-center gap-3 px-3 py-2 rounded text-sm text-[#3e3535] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#5a4f4f]"><EmailIcon /> Email</button>
+                    <button onClick={() => handleShare('copy')} className="w-full text-left flex items-center gap-3 px-3 py-2 rounded text-sm text-[#3e3535] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#5a4f4f]">
+                        {shareFeedback ? <><CheckIcon className="text-green-500" /> {shareFeedback}</> : <><CopyIcon /> Copiar Link</>}
+                    </button>
+                </div>
+            )}
+        </div>
+      </div>
+    </div>
+  );
+};

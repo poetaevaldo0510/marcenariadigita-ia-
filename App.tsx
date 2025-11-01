@@ -92,6 +92,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
     const [isEmployeeManagementModalOpen, setIsEmployeeManagementModalOpen] = useState(false);
     const [isLearningHubModalOpen, setIsLearningHubModalOpen] = useState(false);
     const [is3DFrom2DModalOpen, setIs3DFrom2DModalOpen] = useState(false);
+    const [isGenerating3D, setIsGenerating3D] = useState(false);
     const [isAdminView, setIsAdminView] = useState(false);
 
     // Theme
@@ -270,6 +271,44 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         setFavoriteFinishes(updatedFavorites);
     };
 
+    const handleGenerate3DFrom2D = async (style: string, finish: string) => {
+        if (!currentProject || !currentProject.image2d) return;
+        setIsGenerating3D(true);
+        try {
+            const imageBase64 = await generate3Dfrom2D(currentProject, style, finish);
+            const imageUrl = `data:image/png;base64,${imageBase64}`;
+            
+            const updatedViews = [...currentProject.views3d, imageUrl];
+            const updatedProject = await updateProjectInHistory(currentProject.id, { views3d: updatedViews });
+
+            if (updatedProject) {
+                setCurrentProject(updatedProject);
+                setHistory(await getHistory());
+                setViewMode('3d');
+                setIs3DFrom2DModalOpen(false);
+            }
+
+        } catch (error) {
+            showAlert(error instanceof Error ? error.message : 'Erro ao gerar a vista 3D.');
+        } finally {
+            setIsGenerating3D(false);
+        }
+    };
+    
+    const handleSaveCuttingPlan = async (updates: Partial<ProjectHistoryItem>) => {
+        if (!currentProject) return;
+        try {
+            const updatedProject = await updateProjectInHistory(currentProject.id, updates);
+            if (updatedProject) {
+                setCurrentProject(updatedProject);
+                setHistory(await getHistory());
+                showAlert('Plano de corte salvo com sucesso no projeto!', 'Sucesso');
+            }
+        } catch (error) {
+            showAlert(error instanceof Error ? error.message : 'Erro ao salvar o plano de corte.');
+        }
+    };
+
     // --- SUB-COMPONENTS ---
     const Project3DViewer: React.FC<{
         views: string[];
@@ -350,8 +389,9 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
       const Project2DViewer: React.FC<{
         src: string;
         onEditClick: (src: string) => void;
+        onGenerate3DClick: () => void;
         projectName: string;
-      }> = ({ src, onEditClick, projectName }) => {
+      }> = ({ src, onEditClick, onGenerate3DClick, projectName }) => {
           if (!src) return <p className="text-[#8a7e7e] dark:text-[#a89d8d] text-center p-8">Nenhuma planta baixa disponível para este projeto.</p>;
       
           return (
@@ -359,6 +399,9 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                   <div className="relative group mb-4">
                       <InteractiveImageViewer src={src} alt="Planta baixa 2D" projectName={projectName} />
                       <div className="absolute top-2 right-2 z-10 flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                          <button onClick={onGenerate3DClick} className="text-white bg-[#3e3535]/70 hover:bg-[#2d2424]/80 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
+                              <CubeIcon /> Gerar Vista 3D
+                          </button>
                           <button onClick={() => onEditClick(src)} className="text-white bg-[#3e3535]/70 hover:bg-[#2d2424]/80 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
                               <WandIcon /> Editar Layout
                           </button>
@@ -633,7 +676,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                                         {viewMode === '3d' ? (
                                             <Project3DViewer views={currentProject.views3d} onEditClick={(src) => setImageEditorState({isOpen: true, src})} onARClick={(src) => setArViewerState({isOpen: true, src})} onNewViewClick={() => setIsNewViewModalOpen(true)} projectName={currentProject.name} />
                                         ) : (
-                                            <Project2DViewer src={currentProject.image2d!} onEditClick={(src) => setLayoutEditorState({isOpen: true, src})} projectName={currentProject.name}/>
+                                            <Project2DViewer src={currentProject.image2d!} onEditClick={(src) => setLayoutEditorState({isOpen: true, src})} onGenerate3DClick={() => setIs3DFrom2DModalOpen(true)} projectName={currentProject.name}/>
                                         )}
                                         
                                         <div className="mt-6 pt-6 border-t border-[#e6ddcd] dark:border-[#5a4f4f]">
@@ -682,13 +725,22 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
             {currentProject && <ProposalModal isOpen={isProposalModalOpen} onClose={() => setIsProposalModalOpen(false)} project={currentProject} client={currentClient} showAlert={showAlert} />}
             {currentProject && <NewViewGenerator isOpen={isNewViewModalOpen} onClose={() => setIsNewViewModalOpen(false)} project={currentProject} onSaveComplete={async () => setHistory(await getHistory())} showAlert={showAlert}/>}
             {currentProject && <BomGeneratorModal isOpen={isBomGeneratorModalOpen} onClose={() => setIsBomGeneratorModalOpen(false)} showAlert={showAlert} />}
-            {currentProject && <CuttingPlanGeneratorModal isOpen={isCuttingPlanGeneratorModalOpen} onClose={() => setIsCuttingPlanGeneratorModalOpen(false)} showAlert={showAlert} />}
+            {currentProject && <CuttingPlanGeneratorModal isOpen={isCuttingPlanGeneratorModalOpen} onClose={() => setIsCuttingPlanGeneratorModalOpen(false)} showAlert={showAlert} project={currentProject} onSave={handleSaveCuttingPlan} />}
             {currentProject && <CostEstimatorModal isOpen={isCostEstimatorModalOpen} onClose={() => setIsCostEstimatorModalOpen(false)} showAlert={showAlert} />}
             <ARViewer isOpen={arViewerState.isOpen} onClose={() => setArViewerState({ isOpen: false, src: '' })} imageSrc={arViewerState.src} showAlert={showAlert} />
             <EncontraProModal isOpen={isEncontraProModalOpen} onClose={() => setIsEncontraProModalOpen(false)} showAlert={showAlert} />
             <PerformanceModal isOpen={isPerformanceModalOpen} onClose={() => setIsPerformanceModalOpen(false)} userEmail={userEmail} showAlert={showAlert} />
             <WhatsappSenderModal isOpen={isWhatsappModalOpen} onClose={() => setIsWhatsappModalOpen(false)} project={currentProject} client={currentClient} showAlert={showAlert} />
             <SettingsModal isOpen={isSettingsModalOpen} onClose={() => setIsSettingsModalOpen(false)} showAlert={showAlert} />
+            {currentProject && currentProject.image2d && (
+                <Generate3DFrom2DModal
+                    isOpen={is3DFrom2DModalOpen}
+                    onClose={() => setIs3DFrom2DModalOpen(false)}
+                    onGenerate={handleGenerate3DFrom2D}
+                    project={currentProject}
+                    isGenerating={isGenerating3D}
+                />
+            )}
 
             {/* Early Access Modals */}
              <EarlyAccessModal isOpen={isAutoPurchaseModalOpen} onClose={() => setIsAutoPurchaseModalOpen(false)} title="Compra Automática de Materiais">
