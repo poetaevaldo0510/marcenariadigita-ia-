@@ -367,6 +367,58 @@ export async function suggestAlternativeStyles(description: string, currentStyle
     return cleanAndParseJson<string[]>(response.text);
 }
 
+export async function suggestAlternativeFinishes(projectDescription: string, imageSrc: string, currentFinishName?: string): Promise<Finish[]> {
+    const model = 'gemini-2.5-pro';
+    const base64Data = imageSrc.split(',')[1];
+    const mimeType = imageSrc.match(/data:(.*);/)?.[1] || 'image/png';
+
+    let promptText = `Analyze the provided image of a furniture piece and its description. Suggest 3 alternative finishes that would complement this furniture piece, focusing on major Brazilian brands (like Duratex, Arauco, Guararapes, Sudati).
+    Project Description: "${projectDescription}".`;
+
+    if (currentFinishName) {
+        promptText += ` Please exclude finishes similar to "${currentFinishName}".`;
+    }
+
+    promptText += ` Return a JSON array of objects. Each object must have these keys:
+    - "id": A unique string identifier.
+    - "name": The commercial name of the finish.
+    - "description": A brief description of the finish's appearance.
+    - "type": The material type, which must be one of: 'wood', 'solid', 'metal', 'stone', 'concrete', 'ceramic', 'fabric', 'glass', 'laminate', 'veneer'.
+    - "imageUrl": A publicly accessible URL to an image of the finish.
+    - "manufacturer": The name of the brand/manufacturer.`;
+
+    const parts: Part[] = [
+        fileToGenerativePart(base64Data, mimeType),
+        { text: promptText }
+    ];
+
+    const response = await callApiWithRetry(() => ai.models.generateContent({
+        model,
+        contents: { parts },
+        config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: Type.ARRAY,
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        id: { type: Type.STRING },
+                        name: { type: Type.STRING },
+                        description: { type: Type.STRING },
+                        type: { type: Type.STRING },
+                        imageUrl: { type: Type.STRING },
+                        manufacturer: { type: Type.STRING },
+                    },
+                    required: ["id", "name", "description", "type", "imageUrl", "manufacturer"]
+                }
+            }
+        }
+    }));
+
+    return cleanAndParseJson<Finish[]>(response.text);
+}
+
+
 export async function generateFloorPlanFrom3D(project: ProjectHistoryItem): Promise<string> {
     const model = 'gemini-2.5-flash-image';
     const imageSrc = project.views3d[0];
@@ -464,7 +516,7 @@ export async function searchFinishes(query: string): Promise<Finish[]> {
     - "id": A unique string identifier (e.g., "duratex_cristallo").
     - "name": The commercial name of the finish.
     - "description": A brief description of the finish's appearance.
-    - "type": The material type, which must be one of: 'wood', 'solid', 'metal', 'stone', 'concrete', 'ceramic', 'fabric', 'glass', 'laminate', 'veneer'.
+    - "type": The material type, which must be one of: 'wood' | 'solid' | 'metal' | 'stone' | 'concrete' | 'ceramic' | 'fabric' | 'glass' | 'laminate' | 'veneer'.
     - "imageUrl": A publicly accessible URL to an image of the finish.
     - "manufacturer": The name of the brand/manufacturer.`;
     

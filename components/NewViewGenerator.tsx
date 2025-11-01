@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { editImage, suggestAlternativeStyles } from '../services/geminiService';
+import { editImage, suggestAlternativeStyles, suggestAlternativeFinishes } from '../services/geminiService';
 import { updateProjectInHistory } from '../services/historyService';
 import { Spinner, WandIcon, SparklesIcon } from './Shared';
-import type { ProjectHistoryItem } from '../types';
+import type { ProjectHistoryItem, Finish } from '../types';
 import { initialStylePresets } from '../services/presetService';
+import { addTitleToImage } from '../utils/helpers';
 
 interface NewViewGeneratorProps {
     isOpen: boolean;
@@ -20,8 +21,12 @@ export const NewViewGenerator: React.FC<NewViewGeneratorProps> = ({ isOpen, proj
     const [generatedImageSrc, setGeneratedImageSrc] = useState<string | null>(null);
 
     const [availableStyles, setAvailableStyles] = useState(initialStylePresets);
-    const [suggestions, setSuggestions] = useState<string[]>([]);
-    const [isSuggesting, setIsSuggesting] = useState(false);
+    const [suggestedStyles, setSuggestedStyles] = useState<string[]>([]);
+    const [isSuggestingStyles, setIsSuggestingStyles] = useState(false);
+
+    const [suggestedFinishes, setSuggestedFinishes] = useState<Finish[]>([]);
+    const [isSuggestingFinishes, setIsSuggestingFinishes] = useState(false);
+
 
     const originalImageSrc = project.views3d[0];
 
@@ -30,26 +35,43 @@ export const NewViewGenerator: React.FC<NewViewGeneratorProps> = ({ isOpen, proj
             setStyle(project.style);
             setFinish('');
             setGeneratedImageSrc(null);
-            setSuggestions([]);
+            setSuggestedStyles([]); // Reset suggestions
+            setSuggestedFinishes([]); // Reset suggestions
+            // Ensure initialStylePresets are available, but allow new ones to be added dynamically
             setAvailableStyles(initialStylePresets);
         }
     }, [isOpen, project]);
 
     const handleSuggestStyles = async () => {
-        setIsSuggesting(true);
-        setSuggestions([]);
+        setIsSuggestingStyles(true);
+        setSuggestedStyles([]); // Clear previous suggestions
         try {
             const result = await suggestAlternativeStyles(project.description, project.style, originalImageSrc);
             const filteredSuggestions = result
                 .filter(s => s.toLowerCase() !== project.style.toLowerCase())
-                .slice(0, 3);
-            setSuggestions(filteredSuggestions);
+                .slice(0, 3); // Limit to 3 suggestions
+            setSuggestedStyles(filteredSuggestions);
         } catch (error) {
             showAlert(error instanceof Error ? error.message : "Erro ao sugerir estilos.");
         } finally {
-            setIsSuggesting(false);
+            setIsSuggestingStyles(false);
         }
     };
+    
+    const handleSuggestFinishes = async () => {
+        setIsSuggestingFinishes(true);
+        setSuggestedFinishes([]); // Clear previous suggestions
+        try {
+            const currentFinishName = project.selectedFinish?.finish.name;
+            const result = await suggestAlternativeFinishes(project.description, originalImageSrc, currentFinishName);
+            setSuggestedFinishes(result.slice(0, 3)); // Limit to 3 suggestions
+        } catch (error) {
+            showAlert(error instanceof Error ? error.message : "Erro ao sugerir acabamentos.");
+        } finally {
+            setIsSuggestingFinishes(false);
+        }
+    };
+
 
     const handleGenerate = async () => {
         if (!style.trim() || !finish.trim()) {
@@ -68,7 +90,10 @@ export const NewViewGenerator: React.FC<NewViewGeneratorProps> = ({ isOpen, proj
 Mantenha a forma, a estrutura e a perspectiva geral do móvel, alterando apenas o estilo e os materiais conforme solicitado. O fundo deve ser um estúdio de fotografia minimalista.`;
 
             const newImageBase64 = await editImage(base64Data, mimeType, fullPrompt);
-            setGeneratedImageSrc(`data:image/png;base64,${newImageBase64}`);
+            const projectDate = new Date().toLocaleDateString('pt-BR');
+            const title = `${project.name} - Nova Vista (${style})`;
+            const imageWithTitle = await addTitleToImage(newImageBase64, title, projectDate);
+            setGeneratedImageSrc(imageWithTitle);
         } catch (error) {
             showAlert(error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.', 'Erro na Geração');
         } finally {
@@ -131,17 +156,17 @@ Mantenha a forma, a estrutura e a perspectiva geral do móvel, alterando apenas 
                                 <select id="style-select-new-view" value={style} onChange={(e) => setStyle(e.target.value)} className="flex-grow bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition">
                                     {availableStyles.map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
-                                <button onClick={handleSuggestStyles} disabled={isSuggesting} title="Sugerir estilos com IA" className="p-3 rounded-lg bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] text-[#d4ac6e] disabled:opacity-50">
-                                    {isSuggesting ? <Spinner size="sm"/> : <SparklesIcon />}
+                                <button onClick={handleSuggestStyles} disabled={isSuggestingStyles} title="Sugerir estilos com IA" className="p-3 rounded-lg bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] text-[#d4ac6e] disabled:opacity-50">
+                                    {isSuggestingStyles ? <Spinner size="sm"/> : <SparklesIcon />}
                                 </button>
                             </div>
-                             {isSuggesting ? (
+                             {isSuggestingStyles ? (
                                 <div className="text-center p-4 text-sm text-[#8a7e7e] dark:text-[#a89d8d]">Sugerindo estilos...</div>
-                            ) : suggestions.length > 0 && (
+                            ) : suggestedStyles.length > 0 && (
                                 <div className="mt-3 space-y-2 animate-fadeIn">
                                     <h4 className="text-xs font-semibold text-[#8a7e7e] dark:text-[#a89d8d]">Sugestões da Iara:</h4>
                                     <div className="flex flex-wrap gap-2">
-                                        {suggestions.map(suggestion => (
+                                        {suggestedStyles.map(suggestion => (
                                             <button 
                                                 key={suggestion}
                                                 onClick={() => {
@@ -149,7 +174,7 @@ Mantenha a forma, a estrutura e a perspectiva geral do móvel, alterando apenas 
                                                     if (!availableStyles.includes(suggestion)) {
                                                         setAvailableStyles(prev => [suggestion, ...prev]);
                                                     }
-                                                    setSuggestions([]); // Clear suggestions after selection
+                                                    setSuggestedStyles([]); // Clear suggestions after selection
                                                 }}
                                                 className="px-3 py-1 bg-[#e6ddcd] dark:bg-[#4a4040] text-[#6a5f5f] dark:text-[#c7bca9] text-sm font-medium rounded-full hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f] transition"
                                             >
@@ -162,7 +187,56 @@ Mantenha a forma, a estrutura e a perspectiva geral do móvel, alterando apenas 
                         </div>
                         <div>
                             <label htmlFor="finish-input-new-view" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-2">Novo Acabamento Principal</label>
-                            <input id="finish-input-new-view" type="text" value={finish} onChange={(e) => setFinish(e.target.value)} placeholder="Ex: Madeira escura, MDF branco" className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition" />
+                            <div className="flex items-center gap-2">
+                                <input id="finish-input-new-view" type="text" value={finish} onChange={(e) => setFinish(e.target.value)} placeholder="Ex: Madeira escura, MDF branco" className="flex-grow w-full bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition" />
+                                <button onClick={handleSuggestFinishes} disabled={isSuggestingFinishes} title="Sugerir acabamentos com IA" className="p-3 rounded-lg bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] text-[#d4ac6e] disabled:opacity-50">
+                                    {isSuggestingFinishes ? <Spinner size="sm"/> : <SparklesIcon />}
+                                </button>
+                            </div>
+                            {isSuggestingFinishes ? (
+                                <div className="text-center p-4 text-sm text-[#8a7e7e] dark:text-[#a89d8d]">Sugerindo acabamentos...</div>
+                            ) : suggestedFinishes.length > 0 && (
+                                <div className="mt-3 space-y-2 animate-fadeIn">
+                                    <h4 className="text-xs font-semibold text-[#8a7e7e] dark:text-[#a89d8d]">Sugestões da Iara:</h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                                        {suggestedFinishes.map(suggestedFinish => (
+                                            <button
+                                                key={suggestedFinish.id}
+                                                onClick={() => {
+                                                    setFinish(`${suggestedFinish.name} da ${suggestedFinish.manufacturer}`);
+                                                    setSuggestedFinishes([]); // Clear suggestions after selection
+                                                }}
+                                                className="bg-[#e6ddcd] dark:bg-[#4a4040] rounded-lg text-left border border-[#e6ddcd] dark:border-[#5a4f4f] hover:border-[#d4ac6e] dark:hover:border-[#d4ac6e] transition-all duration-200 h-full flex flex-col overflow-hidden group"
+                                            >
+                                                <div className="w-full h-16 bg-[#e6ddcd] dark:bg-[#2d2424] overflow-hidden">
+                                                    {suggestedFinish.imageUrl && (
+                                                        <img
+                                                            src={suggestedFinish.imageUrl}
+                                                            alt={suggestedFinish.name}
+                                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                                            onError={(e) => {
+                                                                const target = e.target as HTMLImageElement;
+                                                                target.style.display = 'none';
+                                                                const parent = target.parentElement;
+                                                                if (parent) {
+                                                                    const textDiv = document.createElement('div');
+                                                                    textDiv.className = 'w-full h-full flex items-center justify-center text-xs text-[#8a7e7e] dark:text-[#a89d8d] p-1 text-center';
+                                                                    textDiv.innerText = suggestedFinish.name;
+                                                                    parent.appendChild(textDiv);
+                                                                }
+                                                            }}
+                                                        />
+                                                    )}
+                                                </div>
+                                                <div className="p-2 flex flex-col justify-between flex-grow">
+                                                    <div className="font-semibold text-[#3e3535] dark:text-[#f5f1e8] text-xs truncate">{suggestedFinish.name}</div>
+                                                    <div className="text-xs text-[#8a7e7e] dark:text-[#a89d8d] mt-1 font-medium self-end">{suggestedFinish.manufacturer}</div>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                      <div className="flex justify-end gap-4 mt-2">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { generateCuttingPlan } from '../services/geminiService';
 import { Spinner, SparklesIcon, ToolsIcon, BlueprintIcon, RulerIcon, CheckIcon, CopyIcon } from './Shared';
-import { convertMarkdownToHtml } from '../utils/helpers';
+import { addTitleToImage, convertMarkdownToHtml } from '../utils/helpers';
 import type { ProjectHistoryItem } from '../types';
 
 interface CuttingPlanGeneratorModalProps {
@@ -64,8 +64,12 @@ export const CuttingPlanGeneratorModal: React.FC<CuttingPlanGeneratorModalProps>
             const projectWithCurrentBom = { ...project, bom: bomInput };
             const { text, image, optimization } = await generateCuttingPlan(projectWithCurrentBom, sheetWidth, sheetHeight);
             
+            const projectDate = new Date(project.timestamp).toLocaleDateString('pt-BR');
+            const title = `${project.name} - Plano de Corte`;
+            const imageWithTitle = await addTitleToImage(image, title, projectDate);
+
             setGeneratedPlan(text);
-            setGeneratedPlanImage(`data:image/png;base64,${image}`);
+            setGeneratedPlanImage(imageWithTitle);
             setGeneratedOptimization(optimization);
         } catch (error) {
             console.error('Error generating cutting plan:', error);

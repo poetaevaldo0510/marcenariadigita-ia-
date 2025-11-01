@@ -7,7 +7,7 @@ import type { AlertState, ImageModalState, ProjectHistoryItem, Finish, Client, P
 import { projectTypePresets, initialStylePresets } from './services/presetService.ts';
 import { generateImage, generateText, editImage, generateCuttingPlan, editFloorPlan, estimateProjectCosts, generateAssemblyDetails, parseBomToList, findSupplierPrice, calculateFinancialSummary, fetchSupplierCatalog, calculateShippingCost, suggestAlternativeStyles, generateFloorPlanFrom3D, generate3Dfrom2D, suggestImageEdits, generateBom } from './services/geminiService.ts';
 import { getHistory, addProjectToHistory, updateProjectInHistory, removeProjectFromHistory, getClients, saveClient, removeClient, getFavoriteFinishes, addFavoriteFinish, removeFavoriteFinish } from './services/historyService.ts';
-import { convertMarkdownToHtml } from './utils/helpers.ts';
+import { addTitleToImage, convertMarkdownToHtml } from './utils/helpers.ts';
 import { useTranslation } from './contexts/I18nContext.tsx';
 
 
@@ -184,10 +184,14 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
             const prompt = `Gere uma imagem 3D fotorrealista de alta qualidade de um móvel com base na seguinte descrição. O fundo deve ser um estúdio de fotografia minimalista com iluminação suave. Foco total no móvel. Descrição: "${fullDescription}"`;
             
             const imageBase64 = await generateImage(prompt, uploadedImages);
-            const imageUrl = `data:image/png;base64,${imageBase64}`;
+
+            const projectName = `${presetName} ${selectedStyle}`;
+            const projectDate = new Date().toLocaleDateString('pt-BR');
+            const imageWithTitle = await addTitleToImage(imageBase64, projectName, projectDate);
+            const imageUrl = imageWithTitle;
             
             const newProject: Omit<ProjectHistoryItem, 'id'|'timestamp'> = {
-                name: `${presetName} ${selectedStyle}`,
+                name: projectName,
                 description: fullDescription,
                 style: selectedStyle,
                 selectedFinish: selectedFinish,
@@ -232,7 +236,9 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         setIsLoading(true);
         try {
             const imageBase64 = await generateFloorPlanFrom3D(currentProject);
-            const imageUrl = `data:image/png;base64,${imageBase64}`;
+            const projectDate = new Date(currentProject.timestamp).toLocaleDateString('pt-BR');
+            const imageWithTitle = await addTitleToImage(imageBase64, `${currentProject.name} - Planta Baixa`, projectDate);
+            const imageUrl = imageWithTitle;
             const updatedProject = await updateProjectInHistory(currentProject.id, { image2d: imageUrl });
             if (updatedProject) {
                 setCurrentProject(updatedProject);
@@ -248,7 +254,9 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
 
     const handleSaveEditedImage = async (newImageBase64: string) => {
         if (!currentProject) return;
-        const newImageUrl = `data:image/png;base64,${newImageBase64}`;
+        const projectDate = new Date().toLocaleDateString('pt-BR');
+        const imageWithTitle = await addTitleToImage(newImageBase64, `${currentProject.name} - Edição`, projectDate);
+        const newImageUrl = imageWithTitle;
         const updatedViews = [...currentProject.views3d, newImageUrl];
         const updatedProject = await updateProjectInHistory(currentProject.id, { views3d: updatedViews });
         if (updatedProject) {
@@ -260,7 +268,9 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
     
     const handleSaveEditedLayout = async (newImageBase64: string) => {
         if (!currentProject) return;
-        const newImageUrl = `data:image/png;base64,${newImageBase64}`;
+        const projectDate = new Date().toLocaleDateString('pt-BR');
+        const imageWithTitle = await addTitleToImage(newImageBase64, `${currentProject.name} - Layout Editado`, projectDate);
+        const newImageUrl = imageWithTitle;
         const updatedProject = await updateProjectInHistory(currentProject.id, { image2d: newImageUrl });
         if (updatedProject) {
             setCurrentProject(updatedProject);
@@ -282,7 +292,10 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         setIsGenerating3D(true);
         try {
             const imageBase64 = await generate3Dfrom2D(currentProject, style, finish);
-            const imageUrl = `data:image/png;base64,${imageBase64}`;
+            const projectDate = new Date().toLocaleDateString('pt-BR');
+            const title = `${currentProject.name} - Vista 3D (${style})`;
+            const imageWithTitle = await addTitleToImage(imageBase64, title, projectDate);
+            const imageUrl = imageWithTitle;
             
             const updatedViews = [...currentProject.views3d, imageUrl];
             const updatedProject = await updateProjectInHistory(currentProject.id, { views3d: updatedViews });
