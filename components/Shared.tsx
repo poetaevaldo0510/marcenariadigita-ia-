@@ -198,6 +198,18 @@ export const SwitchCameraIcon: React.FC<{className?: string}> = ({className}) =>
     </svg>
 );
 
+export const CogIcon: React.FC<{className?: string}> = ({className}) => (
+    <svg className={`w-6 h-6 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-1.007 1.11-1.226l.554-.221a6.002 6.002 0 012.394 0l.554.221c.55.219 1.02.684 1.11 1.226l.092.548a7.42 7.42 0 013.08 2.502l.44.352c.492.392.756.994.756 1.618v.538a7.42 7.42 0 01-1.353 3.993l-.29.436c-.334.502-.85.834-1.438.93l-.58.092a6.002 6.002 0 01-3.993 1.353h-.538c-.624 0-1.226-.264-1.618-.756l-.352-.44a7.42 7.42 0 01-2.502-3.08l-.548-.092c-.542-.09-.994-.56-1.226-1.11l-.221-.554a6.002 6.002 0 010-2.394l.221-.554c.219-.55.684-1.02 1.226-1.11l.548-.092A7.42 7.42 0 018.49 5.426l.44-.352a7.42 7.42 0 012.414-1.134zM12 15.375a3.375 3.375 0 100-6.75 3.375 3.375 0 000 6.75z" />
+    </svg>
+);
+
+export const EllipsisVerticalIcon: React.FC<{className?: string}> = ({className}) => (
+    <svg className={`w-6 h-6 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z" />
+    </svg>
+);
+
 
 // --- TAB ICONS ---
 export const CubeIcon: React.FC<{className?: string}> = ({className}) => (

@@ -12,7 +12,7 @@ import { convertMarkdownToHtml } from './utils/helpers';
 
 // Components
 import { Header } from './components/Header';
-import { AlertModal, ImageModal, ConfirmationModal, Spinner, WandIcon, BlueprintIcon, CubeIcon, ToolsIcon, DocumentDuplicateIcon, BookIcon, CheckIcon, StarIcon, SparklesIcon, RulerIcon, LogoIcon, CurrencyDollarIcon, WhatsappIcon, StoreIcon, UsersIcon, TagIcon, SearchIcon, MessageIcon, TimerIcon, CatalogIcon, DollarCircleIcon, ARIcon, VideoIcon, CommunityIcon, ShareIcon, CopyIcon, EmailIcon, ProIcon, DocumentTextIcon, EarlyAccessModal } from './components/Shared';
+import { AlertModal, ImageModal, ConfirmationModal, Spinner, WandIcon, BlueprintIcon, CubeIcon, ToolsIcon, DocumentDuplicateIcon, BookIcon, CheckIcon, StarIcon, SparklesIcon, RulerIcon, LogoIcon, CurrencyDollarIcon, WhatsappIcon, StoreIcon, UsersIcon, TagIcon, SearchIcon, MessageIcon, TimerIcon, CatalogIcon, DollarCircleIcon, ARIcon, VideoIcon, CommunityIcon, ShareIcon, CopyIcon, EmailIcon, ProIcon, DocumentTextIcon, EarlyAccessModal, EllipsisVerticalIcon } from './components/Shared';
 import { StyleAssistant } from './components/StyleAssistant';
 import { FinishesSelector } from './components/FinishesSelector';
 import { ImageUploader } from './components/ImageUploader';
@@ -33,6 +33,7 @@ import { CuttingPlanGeneratorModal } from './components/CuttingPlanGeneratorModa
 import { CostEstimatorModal } from './components/CostEstimatorModal';
 import { ARViewer } from './components/ARViewer';
 import { EncontraProModal } from './components/EncontraProModal';
+import DashboardAdmin from './admin/DashboardAdmin';
 
 // --- SUB-COMPONENTS ---
 const Project3DViewer: React.FC<{
@@ -43,25 +44,59 @@ const Project3DViewer: React.FC<{
   projectName: string;
 }> = ({ views, onEditClick, onARClick, onNewViewClick, projectName }) => {
     const [activeIndex, setActiveIndex] = useState(0);
+    const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
+    const actionMenuRef = useRef<HTMLDivElement>(null);
+
     useEffect(() => { setActiveIndex(0); }, [views]);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (actionMenuRef.current && !actionMenuRef.current.contains(event.target as Node)) {
+                setIsActionMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
     
     if (!views || views.length === 0) return <p className="text-[#8a7e7e] dark:text-[#a89d8d]">Nenhuma visualização 3D disponível.</p>;
     const activeView = views[activeIndex];
+
+    const handleActionClick = (action: () => void) => {
+        action();
+        setIsActionMenuOpen(false);
+    };
 
     return (
         <div>
             <div className="relative group mb-4">
                 <InteractiveImageViewer src={activeView} alt={`Vista 3D ${activeIndex + 1}`} projectName={projectName} />
-                <div className="absolute top-2 right-2 z-10 flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => onARClick(activeView)} className="text-white bg-[#3e3535]/70 hover:bg-[#2d2424]/80 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
-                        <ARIcon /> Ver em RA
+                 <div ref={actionMenuRef} className="absolute top-2 right-2 z-10 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                    <button 
+                        onClick={() => setIsActionMenuOpen(prev => !prev)}
+                        className="p-2 text-white bg-[#3e3535]/70 hover:bg-[#2d2424]/80 rounded-full"
+                        aria-label="Mais ações"
+                        aria-haspopup="true"
+                        aria-expanded={isActionMenuOpen}
+                    >
+                        <EllipsisVerticalIcon className="w-5 h-5" />
                     </button>
-                    <button onClick={onNewViewClick} className="text-white bg-[#3e3535]/70 hover:bg-[#2d2424]/80 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
-                        <WandIcon /> Nova Vista
-                    </button>
-                    <button onClick={() => onEditClick(activeView)} className="text-white bg-[#3e3535]/70 hover:bg-[#2d2424]/80 px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
-                        <WandIcon /> Editar com Iara
-                    </button>
+
+                    {isActionMenuOpen && (
+                        <div className="absolute right-0 mt-2 w-48 bg-[#fffefb] dark:bg-[#4a4040] border border-[#e6ddcd] dark:border-[#5a4f4f] rounded-lg shadow-xl p-1 z-20 animate-scaleIn" style={{transformOrigin: 'top right'}} role="menu">
+                            <button onClick={() => handleActionClick(() => onARClick(activeView))} className="w-full text-left flex items-center gap-3 px-3 py-2 rounded text-sm text-[#3e3535] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#5a4f4f]" role="menuitem">
+                                <ARIcon className="w-4 h-4" /> Ver em RA
+                            </button>
+                            <button onClick={() => handleActionClick(onNewViewClick)} className="w-full text-left flex items-center gap-3 px-3 py-2 rounded text-sm text-[#3e3535] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#5a4f4f]" role="menuitem">
+                                <WandIcon /> Nova Vista
+                            </button>
+                            <button onClick={() => handleActionClick(() => onEditClick(activeView))} className="w-full text-left flex items-center gap-3 px-3 py-2 rounded text-sm text-[#3e3535] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#5a4f4f]" role="menuitem">
+                                <WandIcon /> Editar com Iara
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
             {views.length > 1 && (
@@ -334,6 +369,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const [clients, setClients] = useState<Client[]>([]);
   const [favoriteFinishes, setFavoriteFinishes] = useState<Finish[]>([]);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [view, setView] = useState<'main' | 'admin'>('main');
   const isAdmin = ADMIN_EMAILS.includes(userEmail.toLowerCase());
 
   // Input States
@@ -942,6 +978,101 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
     );
   }
 
+  const renderAppContent = () => {
+    if (view === 'admin') {
+        return <DashboardAdmin onNavigateBack={() => setView('main')} />;
+    }
+
+    return (
+        <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Left Column: Input Panel */}
+            <div className="bg-[#fffefb] dark:bg-[#3e3535] p-6 rounded-lg shadow-lg border border-[#e6ddcd] dark:border-[#4a4040] space-y-6 self-start">
+                <button onClick={resetForm} className="w-full bg-[#e6ddcd] dark:bg-[#4a4040] text-center py-2 px-4 rounded-lg font-semibold hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f] transition flex items-center justify-center gap-2">
+                <DocumentDuplicateIcon /> Novo Projeto
+                </button>
+                
+                {/* Step 1: Description */}
+                <div>
+                <h2 className="text-2xl font-semibold mb-4 text-[#3e3535] dark:text-[#f5f1e8]">Passo 1: Descreva a sua Ideia</h2>
+                <div className="flex gap-2 items-start">
+                    <textarea
+                    ref={descriptionTextAreaRef}
+                    value={projectDescription}
+                    onChange={e => setProjectDescription(e.target.value)}
+                    rows={6}
+                    placeholder={`Ex: ${activePreset?.suggestions?.[0] || 'Um armário de cozinha moderno...'}`}
+                    className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition"
+                    />
+                    <VoiceInputButton 
+                        onTranscript={text => setProjectDescription(prev => prev ? `${prev.trim()} ${text}` : text)} 
+                        showAlert={showAlert} 
+                    />
+                </div>
+                <ImageUploader onImagesChange={setUploadedImages} showAlert={showAlert} initialImageUrls={currentProject?.uploadedReferenceImageUrls} />
+                <StyleAssistant presetId={projectTypePresetId} onSelect={setProjectDescription} />
+                </div>
+
+                {/* Step 2: Finishes */}
+                <FinishesSelector onFinishSelect={setSelectedFinish} value={selectedFinish} showAlert={showAlert} favoriteFinishes={favoriteFinishes} onToggleFavorite={handleToggleFavoriteFinish} />
+
+                {/* Step 3: Details */}
+                <div>
+                <h2 className="text-2xl font-semibold mb-4 text-[#3e3535] dark:text-[#f5f1e8]">Passo 3: Detalhes e Geração</h2>
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <label htmlFor="style" className="font-medium text-[#6a5f5f] dark:text-[#c7bca9]">Estilo do Projeto</label>
+                        <div className="flex items-center gap-2">
+                            <select id="style" value={stylePreset} onChange={e => setStylePreset(e.target.value)} className="bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-2 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e]">
+                                {availableStyles.map(s => <option key={s} value={s}>{s}</option>)}
+                            </select>
+                            <button onClick={handleSuggestStyles} disabled={!currentProject} title={!currentProject ? "Salve um projeto para ver sugestões" : "Sugerir estilos alternativos"} className="p-2 rounded-full bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] text-[#d4ac6e] disabled:opacity-50 disabled:cursor-not-allowed">
+                                <SparklesIcon />
+                            </button>
+                        </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <label htmlFor="led" className="font-medium text-[#6a5f5f] dark:text-[#c7bca9]">Iluminação com LED?</label>
+                        <label htmlFor="led" className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="led" checked={withLedLighting} onChange={e => setWithLedLighting(e.target.checked)} className="sr-only peer" />
+                            <div className="w-11 h-6 bg-[#e6ddcd] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#d4ac6e]/50 dark:peer-focus:ring-[#d4ac6e]/80 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[#d4ac6e]"></div>
+                        </label>
+                    </div>
+                </div>
+                </div>
+                
+                <button
+                onClick={handleGenerateProject}
+                disabled={isLoading || !isProjectCreationAllowed}
+                title={!isProjectCreationAllowed ? `Você atingiu o limite de ${projectLimit} projetos/mês do plano Hobby.` : ''}
+                className="w-full bg-gradient-to-r from-[#d4ac6e] to-[#b99256] text-[#3e3535] font-bold py-4 px-6 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg"
+                >
+                {isLoading ? <><Spinner size="sm" /> Gerando...</> : <><WandIcon /> Gerar Projeto com Iara</>}
+                </button>
+                {userPlan === 'hobby' && (
+                    <div className="mt-2 text-center text-sm text-[#8a7e7e] dark:text-[#a89d8d]">
+                        <p>Projetos criados este mês: {monthlyProjectCount} / {projectLimit}</p>
+                        {!isProjectCreationAllowed && (
+                            <p className="font-semibold text-amber-600 dark:text-amber-400 mt-1">
+                                Atualize para o plano Profissional para criar projetos ilimitados.
+                            </p>
+                        )}
+                    </div>
+                )}
+            </div>
+            {/* Right Column: Results Panel */}
+            <div ref={resultsRef} className="space-y-6">
+                {isLoading && !currentProject ? (
+                <div className="bg-[#fffefb] dark:bg-[#3e3535] p-6 rounded-lg shadow-lg border border-[#e6ddcd] dark:border-[#4a4040] flex flex-col items-center justify-center h-96 animate-fadeIn">
+                    <Spinner />
+                    <p className="mt-4 text-[#6a5f5f] dark:text-[#c7bca9]">{loadingMessage}</p>
+                </div>
+                ) : renderResults()}
+            </div>
+            </div>
+        </main>
+    );
+  }
 
   return (
     <div className={`min-h-screen ${theme}`}>
@@ -966,94 +1097,9 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         onOpenLearningHub={() => openFutureFeature('Hub de Aprendizagem', <LearningHubEarlyAccessPreview />, <CommunityIcon />)}
         onOpenEncontraPro={() => setIsEncontraProOpen(true)}
         onOpenAR={() => openFutureFeature('Realidade Aumentada', <AREarlyAccessPreview />, <ARIcon />)}
+        onOpenAdmin={() => setView('admin')}
       />
-      <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column: Input Panel */}
-          <div className="bg-[#fffefb] dark:bg-[#3e3535] p-6 rounded-lg shadow-lg border border-[#e6ddcd] dark:border-[#4a4040] space-y-6 self-start">
-            <button onClick={resetForm} className="w-full bg-[#e6ddcd] dark:bg-[#4a4040] text-center py-2 px-4 rounded-lg font-semibold hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f] transition flex items-center justify-center gap-2">
-              <DocumentDuplicateIcon /> Novo Projeto
-            </button>
-            
-            {/* Step 1: Description */}
-            <div>
-              <h2 className="text-2xl font-semibold mb-4 text-[#3e3535] dark:text-[#f5f1e8]">Passo 1: Descreva a sua Ideia</h2>
-              <div className="flex gap-2 items-start">
-                <textarea
-                  ref={descriptionTextAreaRef}
-                  value={projectDescription}
-                  onChange={e => setProjectDescription(e.target.value)}
-                  rows={6}
-                  placeholder={`Ex: ${activePreset?.suggestions?.[0] || 'Um armário de cozinha moderno...'}`}
-                  className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition"
-                />
-                <VoiceInputButton 
-                    onTranscript={text => setProjectDescription(prev => prev ? `${prev.trim()} ${text}` : text)} 
-                    showAlert={showAlert} 
-                />
-              </div>
-              <ImageUploader onImagesChange={setUploadedImages} showAlert={showAlert} initialImageUrls={currentProject?.uploadedReferenceImageUrls} />
-              <StyleAssistant presetId={projectTypePresetId} onSelect={setProjectDescription} />
-            </div>
-
-            {/* Step 2: Finishes */}
-            <FinishesSelector onFinishSelect={setSelectedFinish} value={selectedFinish} showAlert={showAlert} favoriteFinishes={favoriteFinishes} onToggleFavorite={handleToggleFavoriteFinish} />
-
-            {/* Step 3: Details */}
-            <div>
-              <h2 className="text-2xl font-semibold mb-4 text-[#3e3535] dark:text-[#f5f1e8]">Passo 3: Detalhes e Geração</h2>
-              <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                     <label htmlFor="style" className="font-medium text-[#6a5f5f] dark:text-[#c7bca9]">Estilo do Projeto</label>
-                     <div className="flex items-center gap-2">
-                         <select id="style" value={stylePreset} onChange={e => setStylePreset(e.target.value)} className="bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-2 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e]">
-                            {availableStyles.map(s => <option key={s} value={s}>{s}</option>)}
-                         </select>
-                         <button onClick={handleSuggestStyles} disabled={!currentProject} title={!currentProject ? "Salve um projeto para ver sugestões" : "Sugerir estilos alternativos"} className="p-2 rounded-full bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] text-[#d4ac6e] disabled:opacity-50 disabled:cursor-not-allowed">
-                             <SparklesIcon />
-                         </button>
-                     </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                     <label htmlFor="led" className="font-medium text-[#6a5f5f] dark:text-[#c7bca9]">Iluminação com LED?</label>
-                     <label htmlFor="led" className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="led" checked={withLedLighting} onChange={e => setWithLedLighting(e.target.checked)} className="sr-only peer" />
-                        <div className="w-11 h-6 bg-[#e6ddcd] peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#d4ac6e]/50 dark:peer-focus:ring-[#d4ac6e]/80 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-[#d4ac6e]"></div>
-                     </label>
-                  </div>
-              </div>
-            </div>
-            
-            <button
-              onClick={handleGenerateProject}
-              disabled={isLoading || !isProjectCreationAllowed}
-              title={!isProjectCreationAllowed ? `Você atingiu o limite de ${projectLimit} projetos/mês do plano Hobby.` : ''}
-              className="w-full bg-gradient-to-r from-[#d4ac6e] to-[#b99256] text-[#3e3535] font-bold py-4 px-6 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg"
-            >
-              {isLoading ? <><Spinner size="sm" /> Gerando...</> : <><WandIcon /> Gerar Projeto com Iara</>}
-            </button>
-            {userPlan === 'hobby' && (
-                <div className="mt-2 text-center text-sm text-[#8a7e7e] dark:text-[#a89d8d]">
-                    <p>Projetos criados este mês: {monthlyProjectCount} / {projectLimit}</p>
-                    {!isProjectCreationAllowed && (
-                        <p className="font-semibold text-amber-600 dark:text-amber-400 mt-1">
-                            Atualize para o plano Profissional para criar projetos ilimitados.
-                        </p>
-                    )}
-                </div>
-            )}
-          </div>
-          {/* Right Column: Results Panel */}
-          <div ref={resultsRef} className="space-y-6">
-            {isLoading && !currentProject ? (
-              <div className="bg-[#fffefb] dark:bg-[#3e3535] p-6 rounded-lg shadow-lg border border-[#e6ddcd] dark:border-[#4a4040] flex flex-col items-center justify-center h-96 animate-fadeIn">
-                <Spinner />
-                <p className="mt-4 text-[#6a5f5f] dark:text-[#c7bca9]">{loadingMessage}</p>
-              </div>
-            ) : renderResults()}
-          </div>
-        </div>
-      </main>
+      {renderAppContent()}
       
       {/* Modals and Panels */}
       <AlertModal state={alertState} onClose={() => setAlertState({ ...alertState, show: false })} />

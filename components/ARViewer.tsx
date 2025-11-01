@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, WheelEvent, MouseEvent, TouchEvent, useCallback } from 'react';
+import React, { useState, useEffect, useRef, MouseEvent, TouchEvent, useCallback } from 'react';
 import { Spinner } from './Shared';
 
 interface ARViewerProps {
@@ -152,17 +152,24 @@ export const ARViewer: React.FC<ARViewerProps> = ({ isOpen, onClose, imageSrc, s
             context.save();
             context.globalAlpha = opacity;
             
-            const imageWidth = imageToDraw.width * transform.scale;
-            const imageHeight = imageToDraw.height * transform.scale;
+            // Centerpoint for rotation/scaling needs to be calculated relative to the canvas size
+            const imageWidth = canvas.width * transform.scale * 0.5; // Example scaling factor
+            const imageHeight = (imageToDraw.height / imageToDraw.width) * imageWidth;
+
+            // Place the image in the center of the canvas initially, then apply pan transforms
+            const initialX = (canvas.width - imageWidth) / 2;
+            const initialY = (canvas.height - imageHeight) / 2;
+            const finalX = initialX + transform.x;
+            const finalY = initialY + transform.y;
             
-            const centerX = transform.x + imageWidth / 2;
-            const centerY = transform.y + imageHeight / 2;
+            const centerX = finalX + imageWidth / 2;
+            const centerY = finalY + imageHeight / 2;
 
             context.translate(centerX, centerY);
             context.rotate(transform.rotation * Math.PI / 180);
             context.translate(-centerX, -centerY);
             
-            context.drawImage(imageToDraw, transform.x, transform.y, imageWidth, imageHeight);
+            context.drawImage(imageToDraw, finalX, finalY, imageWidth, imageHeight);
             context.restore();
             
             const dataUrl = canvas.toDataURL('image/jpeg');
@@ -203,9 +210,9 @@ export const ARViewer: React.FC<ARViewerProps> = ({ isOpen, onClose, imageSrc, s
                     src={imageSrc}
                     alt="AR Overlay"
                     draggable="false"
-                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none"
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 select-none pointer-events-none w-1/2 h-auto"
                     style={{
-                        transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale}) rotate(${transform.rotation}deg)`,
+                        transform: `translate(-50%, -50%) translate(${transform.x}px, ${transform.y}px) scale(${transform.scale}) rotate(${transform.rotation}deg)`,
                         opacity: opacity,
                         willChange: 'transform',
                     }}
@@ -238,4 +245,4 @@ export const ARViewer: React.FC<ARViewerProps> = ({ isOpen, onClose, imageSrc, s
             </div>
         </div>
     );
-}
+};
