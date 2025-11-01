@@ -1,4 +1,4 @@
-import type { ProjectHistoryItem, Client, Finish } from '../types';
+import type { ProjectHistoryItem, Client, Finish } from '../types.ts';
 
 const DB_NAME = 'MarcenAppDB';
 const PROJECTS_STORE_NAME = 'projects';
