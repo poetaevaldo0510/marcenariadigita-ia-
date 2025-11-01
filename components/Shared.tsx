@@ -160,8 +160,8 @@ export const DocumentDuplicateIcon: React.FC = () => (
     </svg>
 );
 
-export const RulerIcon: React.FC = () => (
-    <svg className="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+export const RulerIcon: React.FC<{className?: string}> = ({className}) => (
+    <svg className={`w-5 h-5 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 3.75V20.25m-10.5-16.5V20.25m10.5-16.5H6m10.5 0H21m-15 16.5H3m3 0h7.5M9 6h.008v.008H9V6zm3 0h.008v.008H12V6zm3 0h.008v.008H15V6zm-6 6h.008v.008H9v-.008zm3 0h.008v.008H12v-.008zm3 0h.008v.008H15v-.008z" />
     </svg>
 );
@@ -210,6 +210,24 @@ export const EllipsisVerticalIcon: React.FC<{className?: string}> = ({className}
     </svg>
 );
 
+export const TrophyIcon: React.FC<{className?: string}> = ({className}) => (
+    <svg className={`w-5 h-5 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 18.75h-9a9.75 9.75 0 100-13.5h9a9.75 9.75 0 000 13.5z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12.983 12.723a3 3 0 01-1.966 0L9 11.25m6 1.473l-2.017-1.473" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 15V9.75m0 5.25a2.25 2.25 0 01-4.5 0m4.5 0a2.25 2.25 0 00-4.5 0" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 9.75a2.25 2.25 0 01-4.5 0m4.5 0a2.25 2.25 0 00-4.5 0" />
+    </svg>
+);
+export const BoltIcon: React.FC<{className?: string}> = ({className}) => (
+    <svg className={`w-5 h-5 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+    </svg>
+);
+export const HeartIcon: React.FC<{className?: string}> = ({className}) => (
+    <svg className={`w-5 h-5 ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+    </svg>
+);
 
 // --- TAB ICONS ---
 export const CubeIcon: React.FC<{className?: string}> = ({className}) => (

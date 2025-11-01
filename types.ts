@@ -114,3 +114,18 @@ export interface ProjectLead {
   location: string;
   budget: string;
 }
+
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  icon: string; // 'bolt', 'ruler', 'heart', etc.
+}
+
+export interface UserPerformance {
+  points: number;
+  level: number;
+  progress: number;
+  nextLevelPoints: number;
+  achievements: Achievement[];
+}

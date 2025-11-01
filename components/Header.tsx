@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { LogoIcon, UserIcon, SearchIcon, HeadsetIcon, StoreIcon, HistoryIcon, LogoutIcon, InfoIcon, UsersIcon, SunIcon, MoonIcon, CheckIcon, BookIcon, ToolsIcon, CurrencyDollarIcon, WhatsappIcon, CommunityIcon, ProIcon, ARIcon, CogIcon } from './Shared';
+import { LogoIcon, UserIcon, SearchIcon, HeadsetIcon, StoreIcon, HistoryIcon, LogoutIcon, InfoIcon, UsersIcon, SunIcon, MoonIcon, CheckIcon, BookIcon, ToolsIcon, CurrencyDollarIcon, WhatsappIcon, CommunityIcon, ProIcon, ARIcon, CogIcon, TrophyIcon } from './Shared';
 
 interface HeaderProps {
     userEmail: string;
@@ -20,12 +20,13 @@ interface HeaderProps {
     onOpenEncontraPro: () => void;
     onOpenAR: () => void;
     onOpenAdmin: () => void;
+    onOpenPerformance: () => void;
     onLogout: () => void;
     theme: 'light' | 'dark';
     setTheme: (theme: 'light' | 'dark') => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ userEmail, isAdmin, onOpenResearch, onOpenLive, onOpenDistributors, onOpenClients, onOpenHistory, onOpenAbout, onOpenBomGenerator, onOpenCuttingPlanGenerator, onOpenCostEstimator, onOpenWhatsapp, onOpenAutoPurchase, onOpenEmployeeManagement, onOpenLearningHub, onOpenEncontraPro, onOpenAR, onOpenAdmin, onLogout, theme, setTheme }) => {
+export const Header: React.FC<HeaderProps> = ({ userEmail, isAdmin, onOpenResearch, onOpenLive, onOpenDistributors, onOpenClients, onOpenHistory, onOpenAbout, onOpenBomGenerator, onOpenCuttingPlanGenerator, onOpenCostEstimator, onOpenWhatsapp, onOpenAutoPurchase, onOpenEmployeeManagement, onOpenLearningHub, onOpenEncontraPro, onOpenAR, onOpenAdmin, onOpenPerformance, onLogout, theme, setTheme }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -116,6 +117,7 @@ export const Header: React.FC<HeaderProps> = ({ userEmail, isAdmin, onOpenResear
                                     </nav>
                                     <button onClick={() => {onOpenHistory(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><HistoryIcon /> Histórico de Projetos</button>
                                     <button onClick={() => {onOpenClients(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><UsersIcon /> Clientes</button>
+                                    <button onClick={() => {onOpenPerformance(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><TrophyIcon /> Meu Desempenho</button>
                                     <div className="my-1 h-px bg-[#e6ddcd] dark:bg-[#5a4f4f]"></div>
                                     <div className="text-sm px-3 py-2 text-[#6a5f5f] dark:text-[#c7bca9]">
                                         <strong>Ferramentas Autônomas</strong>

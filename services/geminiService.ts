@@ -1,6 +1,6 @@
 import { GoogleGenAI, Modality, GenerateContentResponse, Type } from "@google/genai";
 import type { Part } from "@google/genai";
-import type { Finish, ProjectHistoryItem, LocationState, Marceneiro, PricedBomItem, ProjectLead } from '../types';
+import type { Finish, ProjectHistoryItem, LocationState, Marceneiro, PricedBomItem, ProjectLead, UserPerformance } from '../types';
 import { cleanAndParseJson } from "../utils/helpers";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
@@ -410,3 +410,22 @@ Retorne a resposta APENAS como um array JSON de strings. Exemplo: ["Adicione um 
     const response = await callApiWithRetry(apiCall);
     return cleanAndParseJson<string[]>(response.text);
 }
+
+export const getUserPerformance = async (userEmail: string): Promise<UserPerformance> => {
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    // In a real app, this would be a fetch call to a backend.
+    // For now, return mocked data that matches the admin panel.
+    return {
+        points: 1250,
+        level: 5,
+        progress: 25, // percentage to next level
+        nextLevelPoints: 1500,
+        achievements: [
+            { id: 'ach1', name: 'Projetista Rápido', description: 'Completou 10 projetos em um mês.', icon: 'bolt' },
+            { id: 'ach2', name: 'Mestre das Medidas', description: 'Gerou 20 planos de corte com mais de 90% de aproveitamento.', icon: 'ruler' },
+            { id: 'ach3', name: 'Cliente Feliz', description: 'Recebeu 5 avaliações positivas no EncontraPro.', icon: 'heart' }
+        ]
+    };
+};

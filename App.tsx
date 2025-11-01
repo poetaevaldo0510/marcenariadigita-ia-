@@ -12,7 +12,7 @@ import { convertMarkdownToHtml } from './utils/helpers';
 
 // Components
 import { Header } from './components/Header';
-import { AlertModal, ImageModal, ConfirmationModal, Spinner, WandIcon, BlueprintIcon, CubeIcon, ToolsIcon, DocumentDuplicateIcon, BookIcon, CheckIcon, StarIcon, SparklesIcon, RulerIcon, LogoIcon, CurrencyDollarIcon, WhatsappIcon, StoreIcon, UsersIcon, TagIcon, SearchIcon, MessageIcon, TimerIcon, CatalogIcon, DollarCircleIcon, ARIcon, VideoIcon, CommunityIcon, ShareIcon, CopyIcon, EmailIcon, ProIcon, DocumentTextIcon, EarlyAccessModal, EllipsisVerticalIcon } from './components/Shared';
+import { AlertModal, ImageModal, ConfirmationModal, Spinner, WandIcon, BlueprintIcon, CubeIcon, ToolsIcon, DocumentDuplicateIcon, BookIcon, CheckIcon, StarIcon, SparklesIcon, RulerIcon, LogoIcon, CurrencyDollarIcon, WhatsappIcon, StoreIcon, UsersIcon, TagIcon, SearchIcon, MessageIcon, TimerIcon, CatalogIcon, DollarCircleIcon, ARIcon, VideoIcon, CommunityIcon, ShareIcon, CopyIcon, EmailIcon, ProIcon, DocumentTextIcon, EarlyAccessModal, EllipsisVerticalIcon, TrophyIcon } from './components/Shared';
 import { StyleAssistant } from './components/StyleAssistant';
 import { FinishesSelector } from './components/FinishesSelector';
 import { ImageUploader } from './components/ImageUploader';
@@ -33,6 +33,8 @@ import { CuttingPlanGeneratorModal } from './components/CuttingPlanGeneratorModa
 import { CostEstimatorModal } from './components/CostEstimatorModal';
 import { ARViewer } from './components/ARViewer';
 import { EncontraProModal } from './components/EncontraProModal';
+import { PerformanceModal } from './components/PerformanceModal';
+import { WhatsappSenderModal } from './components/WhatsappSenderModal';
 import DashboardAdmin from './admin/DashboardAdmin';
 
 // --- SUB-COMPONENTS ---
@@ -143,42 +145,6 @@ const EarlyAccessPreviewWrapper: React.FC<{ description: string, children: React
         </div>
     </div>
 );
-
-const WhatsappEarlyAccessPreview: React.FC<{ project: ProjectHistoryItem | null }> = ({ project }) => {
-    const [step, setStep] = useState<'initial' | 'sending' | 'sent'>('initial');
-    useEffect(() => { setStep('initial') }, [project]);
-
-    const handleSend = () => {
-        setStep('sending');
-        setTimeout(() => setStep('sent'), 1500);
-    };
-
-    if (step === 'sent') {
-        return (
-            <EarlyAccessPreviewWrapper description="Conecte sua conta do WhatsApp para enviar propostas e atualizações diretamente aos clientes.">
-                <div className="text-center p-6 flex flex-col items-center justify-center space-y-3">
-                    <CheckIcon className="w-16 h-16 text-green-500" />
-                    <h3 className="text-xl font-bold">Mensagem Enviada!</h3>
-                    <p className="text-[#6a5f5f] dark:text-[#c7bca9]">Uma simulação de notificação foi enviada para o WhatsApp do cliente.</p>
-                    <button onClick={() => setStep('initial')} className="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400 mt-4">Enviar Outra</button>
-                </div>
-            </EarlyAccessPreviewWrapper>
-        );
-    }
-
-    return (
-        <EarlyAccessPreviewWrapper description="Conecte sua conta do WhatsApp para enviar propostas e atualizações diretamente aos clientes.">
-            <div className="space-y-2">
-                <p className="font-semibold">Cliente: {project?.clientName || 'Cliente Exemplo'}</p>
-                <textarea readOnly className="w-full h-24 p-2 rounded bg-white dark:bg-[#3e3535] text-sm" value={`Olá ${project?.clientName || 'Cliente'},\n\nSegue a proposta para o projeto "${project?.name || 'seu novo móvel'}". Por favor, revise e me avise se tiver alguma dúvida.`}></textarea>
-                <button onClick={handleSend} disabled={step === 'sending'} className="w-full bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 flex items-center justify-center gap-2 disabled:opacity-50">
-                    {step === 'sending' ? <Spinner size="sm" /> : <WhatsappIcon className="w-5 h-5"/>}
-                    {step === 'sending' ? 'Enviando...' : 'Simular Envio via WhatsApp'}
-                </button>
-            </div>
-        </EarlyAccessPreviewWrapper>
-    );
-};
 
 const AutoPurchaseEarlyAccessPreview: React.FC<{ project: ProjectHistoryItem | null }> = ({ project }) => {
     const [step, setStep] = useState<'initial' | 'searching' | 'results'>('initial');
@@ -407,6 +373,8 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const [isGenerate3DFrom2DModalOpen, setIsGenerate3DFrom2DModalOpen] = useState(false);
   const [arViewState, setArViewState] = useState<{ isOpen: boolean; src: string }>({ isOpen: false, src: '' });
   const [isEncontraProOpen, setIsEncontraProOpen] = useState(false);
+  const [isPerformanceModalOpen, setIsPerformanceModalOpen] = useState(false);
+  const [isWhatsappSenderOpen, setIsWhatsappSenderOpen] = useState(false);
 
   // Refs
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -733,7 +701,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
     setIsLoading(true);
     setLoadingMessage('Otimizando plano de corte...');
     try {
-        const { text, image, optimization } = await generateCuttingPlan(currentProject, 2750, 1830);
+        const { text, image, optimization } = await generateCuttingPlan(currentProject, 2750, 1850);
         await handleUpdateProject(currentProject.id, { 
             cuttingPlan: text,
             cuttingPlanImage: `data:image/png;base64,${image}`,
@@ -775,6 +743,23 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
     } finally {
         setIsLoading(false);
     }
+  };
+
+  const handleOpenWhatsapp = () => {
+    if (!currentProject) {
+        showAlert("Por favor, selecione um projeto para enviar.", "Nenhum Projeto Selecionado");
+        return;
+    }
+    if (!currentProject.clientId) {
+        showAlert("Este projeto não está associado a um cliente. Por favor, edite o projeto no painel de Clientes para associá-lo.", "Cliente Não Associado");
+        return;
+    }
+    const client = clients.find(c => c.id === currentProject.clientId);
+    if (!client || !client.phone) {
+            showAlert("O cliente associado a este projeto não possui um número de telefone cadastrado.", "Telefone Ausente");
+            return;
+    }
+    setIsWhatsappSenderOpen(true);
   };
 
   const openFutureFeature = (title: string, component: React.ReactNode, icon: React.ReactNode) => {
@@ -922,7 +907,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                                     title={!currentProject.bom ? "Gere a BOM primeiro" : ""}
                                     >
                                     {isLoading ? <Spinner size="sm" /> : <WandIcon />}
-                                    Gerar Plano de Corte (2750x1830mm)
+                                    Gerar Plano de Corte (2750x1850mm)
                                     </button>
                                 </div>
                             )}
@@ -1091,13 +1076,14 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         onOpenBomGenerator={() => setIsBomGeneratorOpen(true)}
         onOpenCuttingPlanGenerator={() => setIsCuttingPlanGeneratorOpen(true)}
         onOpenCostEstimator={() => setIsCostEstimatorOpen(true)}
-        onOpenWhatsapp={() => openFutureFeature('Integração com WhatsApp', <WhatsappEarlyAccessPreview project={currentProject} />, <WhatsappIcon />)}
+        onOpenWhatsapp={handleOpenWhatsapp}
         onOpenAutoPurchase={() => openFutureFeature('Compra Automática de Materiais', <AutoPurchaseEarlyAccessPreview project={currentProject} />, <StoreIcon />)}
         onOpenEmployeeManagement={() => openFutureFeature('Gestão de Funcionários', <EmployeeManagementEarlyAccessPreview />, <UsersIcon />)}
         onOpenLearningHub={() => openFutureFeature('Hub de Aprendizagem', <LearningHubEarlyAccessPreview />, <CommunityIcon />)}
         onOpenEncontraPro={() => setIsEncontraProOpen(true)}
         onOpenAR={() => openFutureFeature('Realidade Aumentada', <AREarlyAccessPreview />, <ARIcon />)}
         onOpenAdmin={() => setView('admin')}
+        onOpenPerformance={() => setIsPerformanceModalOpen(true)}
       />
       {renderAppContent()}
       
@@ -1143,6 +1129,14 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         />
        <ARViewer isOpen={arViewState.isOpen} imageSrc={arViewState.src} onClose={() => setArViewState({ isOpen: false, src: '' })} showAlert={showAlert} />
        <EncontraProModal isOpen={isEncontraProOpen} onClose={() => setIsEncontraProOpen(false)} showAlert={showAlert} />
+       <PerformanceModal isOpen={isPerformanceModalOpen} onClose={() => setIsPerformanceModalOpen(false)} userEmail={userEmail} showAlert={showAlert} />
+       <WhatsappSenderModal
+            isOpen={isWhatsappSenderOpen}
+            onClose={() => setIsWhatsappSenderOpen(false)}
+            project={currentProject}
+            client={clients.find(c => c.id === currentProject?.clientId) || null}
+            showAlert={showAlert}
+        />
     </div>
   );
 };
