@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { projectTypePresets } from '../services/presetService';
+import { projectTypePresets } from '../services/presetService.ts';
 
 interface StyleAssistantProps {
   onSelect: (tag: string) => void;

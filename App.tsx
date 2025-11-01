@@ -1,44 +1,44 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 
 // Types
-import type { AlertState, ImageModalState, ProjectHistoryItem, Finish, Client, PricedBomItem, Comment } from './types';
+import type { AlertState, ImageModalState, ProjectHistoryItem, Finish, Client, PricedBomItem, Comment } from './types.ts';
 
 // Services
-import { projectTypePresets, initialStylePresets } from './services/presetService';
-import { generateImage, generateText, editImage, generateCuttingPlan, editFloorPlan, estimateProjectCosts, generateAssemblyDetails, parseBomToList, findSupplierPrice, calculateFinancialSummary, fetchSupplierCatalog, calculateShippingCost, suggestAlternativeStyles, generateFloorPlanFrom3D, generate3Dfrom2D } from './services/geminiService';
-import { getHistory, addProjectToHistory, updateProjectInHistory, removeProjectFromHistory, getClients, saveClient, removeClient, getFavoriteFinishes, addFavoriteFinish, removeFavoriteFinish } from './services/historyService';
-import { convertMarkdownToHtml } from './utils/helpers';
-import { useTranslation } from './contexts/I18nContext';
+import { projectTypePresets, initialStylePresets } from './services/presetService.ts';
+import { generateImage, generateText, editImage, generateCuttingPlan, editFloorPlan, estimateProjectCosts, generateAssemblyDetails, parseBomToList, findSupplierPrice, calculateFinancialSummary, fetchSupplierCatalog, calculateShippingCost, suggestAlternativeStyles, generateFloorPlanFrom3D, generate3Dfrom2D } from './services/geminiService.ts';
+import { getHistory, addProjectToHistory, updateProjectInHistory, removeProjectFromHistory, getClients, saveClient, removeClient, getFavoriteFinishes, addFavoriteFinish, removeFavoriteFinish } from './services/historyService.ts';
+import { convertMarkdownToHtml } from './utils/helpers.ts';
+import { useTranslation } from './contexts/I18nContext.tsx';
 
 
 // Components
-import { Header } from './components/Header';
-import { AlertModal, ImageModal, ConfirmationModal, Spinner, WandIcon, BlueprintIcon, CubeIcon, ToolsIcon, DocumentDuplicateIcon, BookIcon, CheckIcon, StarIcon, SparklesIcon, RulerIcon, LogoIcon, CurrencyDollarIcon, WhatsappIcon, StoreIcon, UsersIcon, TagIcon, SearchIcon, MessageIcon, TimerIcon, CatalogIcon, DollarCircleIcon, ARIcon, VideoIcon, CommunityIcon, ShareIcon, CopyIcon, EmailIcon, ProIcon, DocumentTextIcon, EarlyAccessModal, EllipsisVerticalIcon, TrophyIcon } from './components/Shared';
-import { StyleAssistant } from './components/StyleAssistant';
-import { FinishesSelector } from './components/FinishesSelector';
-import { ImageUploader } from './components/ImageUploader';
-import { VoiceInputButton } from './components/VoiceInputButton';
-import { HistoryPanel } from './components/HistoryPanel';
-import { AboutModal } from './components/AboutModal';
-import { LiveAssistant } from './components/LiveAssistant';
-import { ResearchAssistant } from './components/ResearchAssistant';
-import { DistributorFinder } from './components/DistributorFinder';
-import { ClientPanel } from './components/ClientPanel';
-import { ImageEditor } from './components/ImageEditor';
-import { InteractiveImageViewer } from './components/InteractiveImageViewer';
-import { LayoutEditor } from './components/LayoutEditor';
-import { ProposalModal } from './components/ProposalModal';
-import { NewViewGenerator } from './components/NewViewGenerator';
-import { BomGeneratorModal } from './components/BomGeneratorModal';
-import { CuttingPlanGeneratorModal } from './components/CuttingPlanGeneratorModal';
-import { CostEstimatorModal } from './components/CostEstimatorModal';
-import { ARViewer } from './components/ARViewer';
-import { EncontraProModal } from './components/EncontraProModal';
-import { PerformanceModal } from './components/PerformanceModal';
-import { WhatsappSenderModal } from './components/WhatsappSenderModal';
-import { SettingsModal } from './components/SettingsModal';
-import { LeadNotification } from './components/LeadNotification';
-import DashboardAdmin from './admin/DashboardAdmin';
+import { Header } from './components/Header.tsx';
+import { AlertModal, ImageModal, ConfirmationModal, Spinner, WandIcon, BlueprintIcon, CubeIcon, ToolsIcon, DocumentDuplicateIcon, BookIcon, CheckIcon, StarIcon, SparklesIcon, RulerIcon, LogoIcon, CurrencyDollarIcon, WhatsappIcon, StoreIcon, UsersIcon, TagIcon, SearchIcon, MessageIcon, TimerIcon, CatalogIcon, DollarCircleIcon, ARIcon, VideoIcon, CommunityIcon, ShareIcon, CopyIcon, EmailIcon, ProIcon, DocumentTextIcon, EarlyAccessModal, EllipsisVerticalIcon, TrophyIcon } from './components/Shared.tsx';
+import { StyleAssistant } from './components/StyleAssistant.tsx';
+import { FinishesSelector } from './components/FinishesSelector.tsx';
+import { ImageUploader } from './components/ImageUploader.tsx';
+import { VoiceInputButton } from './components/VoiceInputButton.tsx';
+import { HistoryPanel } from './components/HistoryPanel.tsx';
+import { AboutModal } from './components/AboutModal.tsx';
+import { LiveAssistant } from './components/LiveAssistant.tsx';
+import { ResearchAssistant } from './components/ResearchAssistant.tsx';
+import { DistributorFinder } from './components/DistributorFinder.tsx';
+import { ClientPanel } from './components/ClientPanel.tsx';
+import { ImageEditor } from './components/ImageEditor.tsx';
+import { InteractiveImageViewer } from './components/InteractiveImageViewer.tsx';
+import { LayoutEditor } from './components/LayoutEditor.tsx';
+import { ProposalModal } from './components/ProposalModal.tsx';
+import { NewViewGenerator } from './components/NewViewGenerator.tsx';
+import { BomGeneratorModal } from './components/BomGeneratorModal.tsx';
+import { CuttingPlanGeneratorModal } from './components/CuttingPlanGeneratorModal.tsx';
+import { CostEstimatorModal } from './components/CostEstimatorModal.tsx';
+import { ARViewer } from './components/ARViewer.tsx';
+import { EncontraProModal } from './components/EncontraProModal.tsx';
+import { PerformanceModal } from './components/PerformanceModal.tsx';
+import { WhatsappSenderModal } from './components/WhatsappSenderModal.tsx';
+import { SettingsModal } from './components/SettingsModal.tsx';
+import { LeadNotification } from './components/LeadNotification.tsx';
+import DashboardAdmin from './admin/DashboardAdmin.tsx';
 
 // --- SUB-COMPONENTS ---
 const Project3DViewer: React.FC<{

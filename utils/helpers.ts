@@ -1,4 +1,4 @@
-import type { ProjectHistoryItem } from '../types';
+import type { ProjectHistoryItem } from '../types.ts';
 import type { Blob } from '@google/genai';
 
 export const fileToBase64 = (file: File): Promise<{ full: string; data: string; mimeType: string }> => {

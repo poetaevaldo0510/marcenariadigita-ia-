@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { Finish } from '../types';
-import { searchFinishes } from '../services/geminiService';
-import { Spinner, SearchIcon, MicIcon, StarIcon } from './Shared';
+import type { Finish } from '../types.ts';
+import { searchFinishes } from '../services/geminiService.ts';
+import { Spinner, SearchIcon, MicIcon, StarIcon } from './Shared.tsx';
 
 interface FinishesSelectorProps {
   onFinishSelect: (selection: { manufacturer: string; finish: Finish; handleDetails?: string } | null) => void;

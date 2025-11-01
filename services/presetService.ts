@@ -1,4 +1,4 @@
-import { KitchenIcon, LivingRoomIcon, BedroomIcon, BathroomIcon, ClosetIcon, OfficeIcon, BalconyIcon, PantryIcon, WineCellarIcon } from '../components/Shared';
+import { KitchenIcon, LivingRoomIcon, BedroomIcon, BathroomIcon, ClosetIcon, OfficeIcon, BalconyIcon, PantryIcon, WineCellarIcon } from '../components/Shared.tsx';
 
 export const projectTypePresets = [
     { id: 'cozinha', name: 'Cozinha', icon: KitchenIcon, gender: 'f', suggestions: [

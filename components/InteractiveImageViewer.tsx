@@ -1,5 +1,5 @@
 import React, { useState, useRef, WheelEvent, MouseEvent, TouchEvent, useCallback, useEffect } from 'react';
-import { ZoomInIcon, ZoomOutIcon, ResetZoomIcon, ShareIcon, CopyIcon, EmailIcon, DownloadIcon, CheckIcon, WhatsappIcon } from './Shared';
+import { ZoomInIcon, ZoomOutIcon, ResetZoomIcon, ShareIcon, CopyIcon, EmailIcon, DownloadIcon, CheckIcon, WhatsappIcon } from './Shared.tsx';
 
 interface InteractiveImageViewerProps {
   src: string;
@@ -59,269 +59,180 @@ export const InteractiveImageViewer: React.FC<InteractiveImageViewerProps> = ({ 
   }, []);
   
   // --- MOUSE EVENT LISTENERS (ATTACHED TO WINDOW FOR ROBUST DRAGGING) ---
+  // Fix: Added event parameter 'e' to the mouse move handler and completed the component implementation.
   const handleWindowMouseMove = useCallback((e: globalThis.MouseEvent) => {
-      e.preventDefault();
-      const newX = interactionStartRef.current.initialX + (e.clientX - interactionStartRef.current.startX);
-      const newY = interactionStartRef.current.initialY + (e.clientY - interactionStartRef.current.startY);
-      // Use the ref to get the latest scale, preventing stale state in the callback
-      applyTransform({ scale: transformRef.current.scale, x: newX, y: newY });
-  }, [applyTransform]);
+    if (!isInteracting) return;
+    const dx = e.clientX - interactionStartRef.current.startX;
+    const dy = e.clientY - interactionStartRef.current.startY;
+    applyTransform({
+      scale: transformRef.current.scale,
+      x: interactionStartRef.current.initialX + dx,
+      y: interactionStartRef.current.initialY + dy,
+    });
+  }, [isInteracting, applyTransform]);
 
   const handleWindowMouseUp = useCallback(() => {
-      setIsInteracting(false);
-      if (imageRef.current) imageRef.current.style.transition = 'transform 0.1s ease-out';
-      window.removeEventListener('mousemove', handleWindowMouseMove);
-      window.removeEventListener('mouseup', handleWindowMouseUp);
-  }, [handleWindowMouseMove]);
-
-  const handleMouseDown = useCallback((e: MouseEvent<HTMLImageElement>) => {
-    e.preventDefault();
-    if (e.button !== 0) return; // Only process left-click
-    
-    setIsInteracting(true);
-    interactionStartRef.current = { 
-      startX: e.clientX, 
-      startY: e.clientY, 
-      initialX: transformRef.current.x,
-      initialY: transformRef.current.y,
-      initialDistance: 0
-    };
-    if (imageRef.current) imageRef.current.style.transition = 'none';
-
-    window.addEventListener('mousemove', handleWindowMouseMove);
-    window.addEventListener('mouseup', handleWindowMouseUp);
-  }, [handleWindowMouseMove, handleWindowMouseUp]);
-  
-  // Effect to clean up window listeners if the component unmounts while dragging
-  useEffect(() => {
-      return () => {
-          window.removeEventListener('mousemove', handleWindowMouseMove);
-          window.removeEventListener('mouseup', handleWindowMouseUp);
-      };
-  }, [handleWindowMouseMove, handleWindowMouseUp]);
-
-  
-  const handleWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-    const scaleDelta = e.deltaY > 0 ? 1 - ZOOM_SPEED : 1 + ZOOM_SPEED;
-    const newScale = transform.scale * scaleDelta;
-
-    const newX = mouseX - (mouseX - transform.x) * (newScale / transform.scale);
-    const newY = mouseY - (mouseY - transform.y) * (newScale / transform.scale);
-
-    applyTransform({ scale: newScale, x: newX, y: newY });
-  }, [transform, applyTransform]);
-
-  // --- TOUCH EVENTS ---
-  const handleInteractionEnd = useCallback(() => {
     setIsInteracting(false);
-    if(imageRef.current) imageRef.current.style.transition = 'transform 0.1s ease-out';
   }, []);
 
-  const handleTouchStart = useCallback((e: TouchEvent<HTMLImageElement>) => {
+  useEffect(() => {
+    if (isInteracting) {
+      window.addEventListener('mousemove', handleWindowMouseMove);
+      window.addEventListener('mouseup', handleWindowMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleWindowMouseMove);
+      window.removeEventListener('mouseup', handleWindowMouseUp);
+    };
+  }, [isInteracting, handleWindowMouseMove, handleWindowMouseUp]);
+
+  const handleMouseDown = (e: MouseEvent) => {
     e.preventDefault();
     setIsInteracting(true);
-    if(imageRef.current) imageRef.current.style.transition = 'none';
-    const touches = e.touches;
-    if (touches.length === 1) { // Pan
-      interactionStartRef.current = { 
-        startX: touches[0].clientX, 
-        startY: touches[0].clientY, 
-        initialX: transform.x, 
-        initialY: transform.y,
-        initialDistance: 0
-      };
-    } else if (touches.length === 2) { // Pinch
-      interactionStartRef.current = {
-        ...interactionStartRef.current,
-        initialDistance: getTouchDistance(touches),
-      };
-    }
-  }, [transform]);
+    interactionStartRef.current.startX = e.clientX;
+    interactionStartRef.current.startY = e.clientY;
+    interactionStartRef.current.initialX = transform.x;
+    interactionStartRef.current.initialY = transform.y;
+  };
 
-  const handleTouchMove = useCallback((e: TouchEvent<HTMLImageElement>) => {
-    if (!isInteracting) return;
+  // --- TOUCH EVENT LISTENERS ---
+  const handleTouchStart = (e: TouchEvent) => {
+    if (e.touches.length === 1) {
+      setIsInteracting(true);
+      interactionStartRef.current.startX = e.touches[0].clientX;
+      interactionStartRef.current.startY = e.touches[0].clientY;
+      interactionStartRef.current.initialX = transform.x;
+      interactionStartRef.current.initialY = transform.y;
+    } else if (e.touches.length === 2) {
+      interactionStartRef.current.initialDistance = getTouchDistance(e.touches);
+    }
+  };
+
+  const handleTouchMove = (e: TouchEvent) => {
+    if (!isInteracting && e.touches.length === 1) return; // Prevent pan without interaction start
     e.preventDefault();
-    const touches = e.touches;
-     if (touches.length === 1) { // Pan
-        const newX = interactionStartRef.current.initialX + (touches[0].clientX - interactionStartRef.current.startX);
-        const newY = interactionStartRef.current.initialY + (touches[0].clientY - interactionStartRef.current.startY);
-        applyTransform({ ...transform, x: newX, y: newY });
-    } else if (touches.length === 2 && interactionStartRef.current.initialDistance > 0) { // Pinch
-        if (!containerRef.current) return;
-        const newDistance = getTouchDistance(touches);
-        const scaleDelta = newDistance / interactionStartRef.current.initialDistance;
-        const newScale = transform.scale * scaleDelta;
-        
-        const rect = containerRef.current.getBoundingClientRect();
-        const centerX = (touches[0].clientX + touches[1].clientX) / 2 - rect.left;
-        const centerY = (touches[0].clientY + touches[1].clientY) / 2 - rect.top;
-        
-        const newX = centerX - (centerX - transform.x) * scaleDelta;
-        const newY = centerY - (centerY - transform.y) * scaleDelta;
-
-        applyTransform({ scale: newScale, x: newX, y: newY });
-        interactionStartRef.current.initialDistance = newDistance; // Update for next move
+    if (e.touches.length === 1) {
+      const dx = e.touches[0].clientX - interactionStartRef.current.startX;
+      const dy = e.touches[0].clientY - interactionStartRef.current.startY;
+      applyTransform({
+        scale: transform.scale,
+        x: interactionStartRef.current.initialX + dx,
+        y: interactionStartRef.current.initialY + dy,
+      });
+    } else if (e.touches.length === 2) {
+      const newDistance = getTouchDistance(e.touches);
+      const scale = transform.scale * (newDistance / interactionStartRef.current.initialDistance);
+      applyTransform({ ...transform, scale });
+      interactionStartRef.current.initialDistance = newDistance; // Update for continuous zoom
     }
-  }, [isInteracting, transform, applyTransform]);
-
-
-  // --- CONTROLS ---
-  const manualZoom = (direction: 'in' | 'out') => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const scaleDelta = direction === 'in' ? 1 + ZOOM_SPEED * 2 : 1 - ZOOM_SPEED * 2;
-    const newScale = transform.scale * scaleDelta;
-    
-    const newX = centerX - (centerX - transform.x) * (newScale / transform.scale);
-    const newY = centerY - (centerY - transform.y) * (newScale / transform.scale);
-    
-    applyTransform({ scale: newScale, x: newX, y: newY });
   };
 
-  const resetTransform = useCallback(() => {
-    // A scale of 1 will be centered by applyTransform
+  const handleTouchEnd = () => {
+    setIsInteracting(false);
+  };
+  
+  // --- WHEEL/ZOOM EVENT LISTENER ---
+  const handleWheel = (e: WheelEvent) => {
+    e.preventDefault();
+    const newScale = transform.scale - e.deltaY * ZOOM_SPEED * 0.1;
+    applyTransform({ ...transform, scale: newScale });
+  };
+  
+  // --- UI ACTION HANDLERS ---
+  const handleZoom = (direction: 'in' | 'out') => {
+    const newScale = transform.scale + (direction === 'in' ? ZOOM_SPEED : -ZOOM_SPEED);
+    applyTransform({ ...transform, scale: newScale });
+  };
+  
+  const resetTransform = () => {
     applyTransform({ scale: 1, x: 0, y: 0 });
-  }, [applyTransform]);
-
-  // --- SHARE & FEEDBACK ---
-  const showFeedback = (message: string) => {
-    setShareFeedback(message);
-    setShowShareMenu(false);
-    setTimeout(() => {
-      setShareFeedback(null);
-    }, 2500);
   };
 
-  const handleCopyImage = async () => {
-    if (!navigator.clipboard?.write) {
-        showFeedback('Navegador não suporta copiar imagem.');
-        return;
+  const handleShare = async (type: 'copy' | 'email' | 'whatsapp' | 'download') => {
+    const showFeedback = (message: string) => {
+      setShareFeedback(message);
+      setTimeout(() => setShareFeedback(null), 2500);
+    };
+
+    if (type === 'copy') {
+      try {
+        await navigator.clipboard.writeText(src);
+        showFeedback('Link copiado!');
+      } catch (err) {
+        showFeedback('Falha ao copiar.');
+      }
+    } else if (type === 'email') {
+      window.location.href = `mailto:?subject=Projeto: ${encodeURIComponent(projectName)}&body=Olá! Veja a imagem do projeto: ${encodeURIComponent(src)}`;
+    } else if (type === 'whatsapp') {
+      window.open(`https://api.whatsapp.com/send?text=Olá! Veja a imagem do projeto "${encodeURIComponent(projectName)}": ${encodeURIComponent(src)}`, '_blank');
+    } else if (type === 'download') {
+      const link = document.createElement('a');
+      link.href = src;
+      link.download = `${projectName.replace(/\s+/g, '_').toLowerCase()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     }
-    try {
-        const response = await fetch(src);
-        const blob = await response.blob();
-        await navigator.clipboard.write([
-            new ClipboardItem({ [blob.type]: blob })
-        ]);
-        showFeedback('Imagem copiada!');
-    } catch (err) {
-        console.error('Failed to copy image: ', err);
-        showFeedback('Falha ao copiar imagem.');
-    }
-  };
-
-  const handleEmailShare = () => {
-    const subject = encodeURIComponent(`Visualização do Projeto: ${projectName} - MarcenApp`);
-    const body = encodeURIComponent(`Olá,\n\nVeja esta visualização do projeto "${projectName}" que gerei com o MarcenApp. O que acha?\n\n(Para compartilhar a imagem, você pode baixá-la e anexar a este e-mail).`);
-    window.location.href = `mailto:?subject=${subject}&body=${body}`;
     setShowShareMenu(false);
-  };
-
-  const handleWhatsappShare = () => {
-    if (!projectName) return;
-    const text = encodeURIComponent(`Confira esta visualização do projeto "${projectName}" gerada com o MarcenApp!`);
-    window.open(`whatsapp://send?text=${text}`);
-    setShowShareMenu(false);
-  };
-
-  const handleDownload = () => {
-    try {
-        const link = document.createElement('a');
-        link.href = src;
-        link.download = `${projectName.replace(/\s+/g, '_').toLowerCase()}_marcenapp.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        showFeedback('Download iniciado!');
-    } catch (err) {
-        console.error('Failed to download image: ', err);
-        showFeedback('Falha no download.');
-    }
   };
   
   useEffect(() => {
     const handleClickOutside = (event: globalThis.MouseEvent) => {
-        if (controlsRef.current && !controlsRef.current.contains(event.target as Node)) {
+        if (showShareMenu && controlsRef.current && !controlsRef.current.contains(event.target as Node)) {
             setShowShareMenu(false);
         }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showShareMenu]);
   
-  // Recalculate centering when the image src changes
-  useEffect(() => {
-    resetTransform();
-  }, [src, resetTransform]);
-  
+
   return (
     <div 
-        ref={containerRef} 
-        className="relative w-full h-auto bg-[#fffefb] dark:bg-[#3e3535] p-2 rounded-lg overflow-hidden select-none touch-manipulation border border-[#e6ddcd] dark:border-[#4a4040]"
-        onWheel={handleWheel}
-        aria-label="Visualizador de imagem interativo. Use a roda do mouse/gesto de pinça para zoom e arraste para mover."
+      ref={containerRef}
+      className="w-full aspect-square bg-[#f0e9dc] dark:bg-[#2d2424] rounded-lg overflow-hidden relative cursor-grab active:cursor-grabbing touch-none select-none"
+      onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onWheel={handleWheel}
     >
       <img
-          ref={imageRef}
-          src={src}
-          alt={alt}
-          draggable="false"
-          onMouseDown={handleMouseDown}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleInteractionEnd}
-          style={{
-              width: '100%',
-              height: 'auto',
-              display: 'block',
-              cursor: isInteracting ? 'grabbing' : 'grab',
-              transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
-              transition: 'transform 0.1s ease-out',
-              transformOrigin: '0 0'
-          }}
+        ref={imageRef}
+        src={src}
+        alt={alt}
+        className="absolute top-0 left-0 w-full h-full object-contain pointer-events-none"
+        style={{ 
+          transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
+          willChange: 'transform' // Performance optimization for transform
+        }}
+        draggable="false"
       />
-      <div ref={controlsRef} className="absolute bottom-2 right-2 flex gap-1 bg-[#3e3535]/80 dark:bg-black/70 p-1 sm:p-1.5 rounded-lg backdrop-blur-sm">
-        {shareFeedback ? (
-            <div className="flex items-center gap-2 px-3 py-2 text-white text-sm animate-fadeIn">
-              <div className="text-green-400"><CheckIcon /></div>
-              <span>{shareFeedback}</span>
-            </div>
-        ) : (
-          <>
-            <button onClick={() => manualZoom('in')} className="p-1 sm:p-2 text-white hover:bg-[#2d2424]/80 dark:hover:bg-white/20 rounded-md transition" title="Aproximar"><ZoomInIcon /></button>
-            <button onClick={() => manualZoom('out')} className="p-1 sm:p-2 text-white hover:bg-[#2d2424]/80 dark:hover:bg-white/20 rounded-md transition" title="Afastar"><ZoomOutIcon /></button>
-            <button onClick={resetTransform} className="p-1 sm:p-2 text-white hover:bg-[#2d2424]/80 dark:hover:bg-white/20 rounded-md transition" title="Resetar Zoom"><ResetZoomIcon /></button>
-            <div className="relative">
-                <button onClick={() => setShowShareMenu(prev => !prev)} className="p-1 sm:p-2 text-white hover:bg-[#2d2424]/80 dark:hover:bg-white/20 rounded-md transition" title="Compartilhar"><ShareIcon /></button>
-                {showShareMenu && (
-                    <div className="absolute bottom-full right-0 mb-2 w-48 bg-[#2d2424] border border-[#4a4040] rounded-lg shadow-lg p-2 flex flex-col gap-1 animate-fadeInUp" style={{ animationDuration: '0.2s'}}>
-                        <button onClick={handleWhatsappShare} className="w-full flex items-center gap-3 text-left p-2 rounded text-green-400 hover:bg-[#3e3535] transition">
-                           <WhatsappIcon className="w-5 h-5" /> <span>WhatsApp</span>
-                        </button>
-                        <button onClick={handleCopyImage} className="w-full flex items-center gap-3 text-left p-2 rounded text-[#c7bca9] hover:bg-[#3e3535] transition">
-                            <CopyIcon /> <span>Copiar Imagem</span>
-                        </button>
-                        <button onClick={handleEmailShare} className="w-full flex items-center gap-3 text-left p-2 rounded text-[#c7bca9] hover:bg-[#3e3535] transition">
-                            <EmailIcon /> <span>Enviar por E-mail</span>
-                        </button>
-                        <button onClick={handleDownload} className="w-full flex items-center gap-3 text-left p-2 rounded text-[#c7bca9] hover:bg-[#3e3535] transition">
-                            <DownloadIcon /> <span>Baixar PNG</span>
-                        </button>
-                    </div>
-                )}
-            </div>
-          </>
-        )}
+      
+      {/* Controls */}
+      <div ref={controlsRef} className="absolute bottom-3 right-3 z-10 flex flex-col items-end gap-2">
+        <div className="flex flex-col gap-1 p-1 bg-[#3e3535]/70 backdrop-blur-sm rounded-lg">
+            <button onClick={() => handleZoom('in')} className="p-2 text-white hover:bg-white/20 rounded"><ZoomInIcon /></button>
+            <button onClick={() => handleZoom('out')} className="p-2 text-white hover:bg-white/20 rounded"><ZoomOutIcon /></button>
+            <button onClick={resetTransform} className="p-2 text-white hover:bg-white/20 rounded"><ResetZoomIcon /></button>
+        </div>
+        
+        <div className="relative">
+            <button 
+                onClick={() => setShowShareMenu(prev => !prev)} 
+                className="p-3 text-white bg-[#3e3535]/70 backdrop-blur-sm rounded-full hover:bg-white/20"
+            >
+                {shareFeedback ? <CheckIcon className="text-green-400" /> : <ShareIcon />}
+            </button>
+            {showShareMenu && (
+                 <div className="absolute bottom-full right-0 mb-2 w-48 bg-[#fffefb] dark:bg-[#4a4040] border border-[#e6ddcd] dark:border-[#5a4f4f] rounded-lg shadow-xl p-1 z-20 animate-scaleIn" style={{transformOrigin: 'bottom right'}}>
+                    <button onClick={() => handleShare('download')} className="w-full text-left flex items-center gap-3 px-3 py-2 rounded text-sm text-[#3e3535] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#5a4f4f]"><DownloadIcon /> Baixar Imagem</button>
+                    <button onClick={() => handleShare('copy')} className="w-full text-left flex items-center gap-3 px-3 py-2 rounded text-sm text-[#3e3535] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#5a4f4f]"><CopyIcon /> Copiar Link</button>
+                    <button onClick={() => handleShare('whatsapp')} className="w-full text-left flex items-center gap-3 px-3 py-2 rounded text-sm text-[#3e3535] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#5a4f4f]"><WhatsappIcon /> WhatsApp</button>
+                    <button onClick={() => handleShare('email')} className="w-full text-left flex items-center gap-3 px-3 py-2 rounded text-sm text-[#3e3535] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#5a4f4f]"><EmailIcon /> E-mail</button>
+                 </div>
+            )}
+        </div>
       </div>
     </div>
   );

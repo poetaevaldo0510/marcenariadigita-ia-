@@ -1,5 +1,5 @@
 import React from 'react';
-import type { AlertState, ImageModalState } from '../types';
+import type { AlertState, ImageModalState } from '../types.ts';
 
 // --- ICONS ---
 

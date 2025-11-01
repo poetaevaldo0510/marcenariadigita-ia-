@@ -1,7 +1,7 @@
 import { GoogleGenAI, Modality, GenerateContentResponse, Type } from "@google/genai";
 import type { Part } from "@google/genai";
-import type { Finish, ProjectHistoryItem, LocationState, Marceneiro, PricedBomItem, ProjectLead, UserPerformance } from '../types';
-import { cleanAndParseJson } from "../utils/helpers";
+import type { Finish, ProjectHistoryItem, LocationState, Marceneiro, PricedBomItem, ProjectLead, UserPerformance } from '../types.ts';
+import { cleanAndParseJson } from "../utils/helpers.ts";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
