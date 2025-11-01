@@ -47,7 +47,7 @@ function processImageGenerationResponse(response: GenerateContentResponse, error
     // Check if the model refused to generate an image
     if (response.candidates?.[0]?.finishReason === 'NO_IMAGE') {
         console.error(`A IA se recusou a gerar uma imagem para ${errorContext}. Motivo: NO_IMAGE.`);
-        throw new Error(`A IA não conseguiu gerar uma imagem para esta solicitação. Isso pode acontecer por motivos de segurança, se o pedido for muito complexo ou se o modelo tiver dificuldades em visualizar o conceito. Por favor, tente simplificar sua descrição ou reformular a solicitação.`);
+        throw new Error(`A IA não conseguiu gerar uma imagem para esta solicitação. Isso pode acontecer por motivos de segurança ou se o pedido for muito complexo. Tente reformular sua solicitação.`);
     }
 
     const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
@@ -85,10 +85,7 @@ export async function generateImage(
     const apiCall = () => ai.models.generateContent({
         model: model,
         contents: { parts: parts },
-        config: { 
-            responseModalities: [Modality.IMAGE],
-            thinkingConfig: { thinkingBudget: 1024 }, // Adicionado para auxiliar em prompts complexos
-        },
+        config: { responseModalities: [Modality.IMAGE] },
     });
     
     const response = await callApiWithRetry(apiCall);
@@ -106,10 +103,7 @@ export async function editImage(base64Data: string, mimeType: string, prompt: st
     const apiCall = () => ai.models.generateContent({
         model: model,
         contents: { parts: parts },
-        config: { 
-            responseModalities: [Modality.IMAGE],
-            thinkingConfig: { thinkingBudget: 1024 }, // Adicionado para auxiliar em prompts complexos
-        },
+        config: { responseModalities: [Modality.IMAGE] },
     });
     
     const response = await callApiWithRetry(apiCall);
@@ -127,10 +121,7 @@ export async function editFloorPlan(base64Data: string, mimeType: string, prompt
     const apiCall = () => ai.models.generateContent({
         model: model,
         contents: { parts: parts },
-        config: { 
-            responseModalities: [Modality.IMAGE],
-            thinkingConfig: { thinkingBudget: 1024 }, // Adicionado para auxiliar em prompts complexos
-        },
+        config: { responseModalities: [Modality.IMAGE] },
     });
 
     const response = await callApiWithRetry(apiCall);
@@ -269,7 +260,7 @@ export async function generateCuttingPlan(project: ProjectHistoryItem, sheetWidt
 
   const [text, image, optimization] = await Promise.all([
     generateText(textPrompt, null),
-    generateImage(imagePrompt, null), // generateImage function has the thinkingConfig
+    generateImage(imagePrompt, null),
     generateText(optimizationPrompt, null),
   ]);
 
@@ -378,6 +369,8 @@ export async function suggestAlternativeStyles(projectDescription: string, curre
 
     const prompt = `Você é um designer de interiores de renome. Com base na descrição e na imagem de um projeto de marcenaria, sugira 3 nomes de estilos alternativos que também funcionariam bem. O estilo atual é "${currentStyle}". Não sugira o estilo atual. Seja criativo e específico (ex: "Minimalista Japandi", "Industrial Urbano", "Rústico Moderno").
 
+**Descrição do Projeto:** ${projectDescription}
+
 Retorne a resposta APENAS como um array JSON de strings. Exemplo: ["Estilo A", "Estilo B", "Estilo C"]`;
     
     const parts: Part[] = [
@@ -399,6 +392,8 @@ export async function suggestImageEdits(projectDescription: string, base64Image:
     const imageData = base64Image.split(',')[1];
 
     const prompt = `Você é um assistente de design criativo. Com base na descrição e na imagem de um móvel, sugira 3 edições curtas e diretas que poderiam ser feitas na imagem. Foque em mudanças de material, cor, adição de pequenos objetos decorativos ou alteração de iluminação.
+
+**Descrição do Projeto:** ${projectDescription}
 
 Retorne a resposta APENAS como um array JSON de strings. Exemplo: ["Adicione um vaso de plantas pequeno ao lado", "Mude o acabamento para laca preta brilhante", "Faça a iluminação ser mais dramática, como ao entardecer"]`;
     

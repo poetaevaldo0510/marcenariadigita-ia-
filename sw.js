@@ -1,11 +1,8 @@
-const CACHE_NAME = 'marcenapp-cache-v1';
+const CACHE_NAME = 'marcenapp-cache-v2';
 
 const STATIC_ASSETS_TO_PRECACHE = [
   '/',
-  '/index.html',
-  'https://cdn.tailwindcss.com',
-  'https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap',
-  'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'
+  '/index.html'
 ];
 
 
@@ -52,22 +49,35 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
       .then(cachedResponse => {
+        // Cache hit, return response
         if (cachedResponse) {
           return cachedResponse;
         }
 
-        return fetch(event.request).then(networkResponse => {
-            if (networkResponse && networkResponse.status === 200) {
-              const responseToCache = networkResponse.clone();
-              caches.open(CACHE_NAME)
-                .then(cache => {
-                  cache.put(event.request, responseToCache);
-                });
+        // Not in cache, go to network
+        return fetch(event.request).then(
+          networkResponse => {
+            // Check if we received a valid response
+            if (!networkResponse || networkResponse.status !== 200) {
+              return networkResponse;
             }
+
+            // Cache the new response for future use
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME)
+              .then(cache => {
+                cache.put(event.request, responseToCache);
+              });
+            
             return networkResponse;
           }
         ).catch(error => {
-            console.log('Fetch failed; app is running offline.', error);
+          console.log('Fetch failed; app is running offline.', error);
+          // If a navigation request fails, serve the main index.html as a fallback.
+          // This allows the SPA to load and handle the route, even offline.
+          if (event.request.mode === 'navigate') {
+            return caches.match('/');
+          }
         });
       })
   );

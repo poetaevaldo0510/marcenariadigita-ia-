@@ -384,6 +384,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   // Refs
   const resultsRef = useRef<HTMLDivElement>(null);
   const descriptionTextAreaRef = useRef<HTMLTextAreaElement>(null);
+  const descriptionBeforeSpeechRef = useRef('');
 
   // --- DERIVED STATE ---
   const activePreset = useMemo(() => projectTypePresets.find(p => p.id === projectTypePresetId), [projectTypePresetId]);
@@ -445,6 +446,14 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
     setWithLedLighting(false);
     setCurrentProject(null);
   }, []);
+
+  const handleTranscriptUpdate = (transcript: string, isFinal: boolean) => {
+    const newText = descriptionBeforeSpeechRef.current + transcript;
+    setProjectDescription(newText);
+    if (isFinal) {
+        descriptionBeforeSpeechRef.current = newText.trim() ? newText.trim() + ' ' : '';
+    }
+  };
 
   const handleGenerateProject = async () => {
     if (!isProjectCreationAllowed) {
@@ -995,9 +1004,13 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                     placeholder={`Ex: ${activePreset?.suggestions?.[0] || 'Um armário de cozinha moderno...'}`}
                     className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition"
                     />
-                    <VoiceInputButton 
-                        onTranscript={text => setProjectDescription(prev => prev ? `${prev.trim()} ${text}` : text)} 
-                        showAlert={showAlert} 
+                    <VoiceInputButton
+                        onRecordingStart={() => {
+                            const currentText = projectDescription.trim();
+                            descriptionBeforeSpeechRef.current = currentText ? currentText + ' ' : '';
+                        }}
+                        onTranscriptUpdate={handleTranscriptUpdate}
+                        showAlert={showAlert}
                     />
                 </div>
                 <ImageUploader onImagesChange={setUploadedImages} showAlert={showAlert} initialImageUrls={currentProject?.uploadedReferenceImageUrls} />

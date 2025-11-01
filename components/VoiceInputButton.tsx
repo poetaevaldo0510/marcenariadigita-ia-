@@ -2,41 +2,52 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MicIcon } from './Shared';
 
 interface VoiceInputButtonProps {
-  onTranscript: (text: string) => void;
+  onRecordingStart: () => void;
+  onTranscriptUpdate: (text: string, isFinal: boolean) => void;
   showAlert: (message: string, title?: string) => void;
 }
 
-export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({ onTranscript, showAlert }) => {
+export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({ onRecordingStart, onTranscriptUpdate, showAlert }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const fullTranscriptRef = useRef('');
 
   useEffect(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      // Don't show an alert on load, just disable the feature.
-      // The button's disabled state will handle user feedback.
       return;
     }
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = false;
+    recognition.continuous = true;
+    recognition.interimResults = true;
     recognition.lang = 'pt-BR';
-    recognition.interimResults = false;
-
+    
     recognition.onresult = (event: any) => {
-      const transcript = event.results[event.results.length - 1][0].transcript.trim();
-      onTranscript(transcript);
+      let interim_transcript = '';
+      let final_transcript_part = '';
+
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          final_transcript_part += transcript;
+        } else {
+          interim_transcript += transcript;
+        }
+      }
+      fullTranscriptRef.current += final_transcript_part;
+      onTranscriptUpdate(fullTranscriptRef.current + interim_transcript, false);
     };
 
-    // Add speech detection events
     recognition.onspeechstart = () => setIsSpeaking(true);
     recognition.onspeechend = () => setIsSpeaking(false);
 
     recognition.onstart = () => setIsRecording(true);
     recognition.onend = () => {
       setIsRecording(false);
-      setIsSpeaking(false); // Ensure reset on end
+      setIsSpeaking(false);
+      onTranscriptUpdate(fullTranscriptRef.current, true);
     };
 
     recognition.onerror = (event: any) => {
@@ -49,7 +60,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({ onTranscript
       }
       showAlert(errorMessage, "Erro de Gravação");
       setIsRecording(false);
-      setIsSpeaking(false); // Ensure reset on error
+      setIsSpeaking(false);
     };
 
     recognitionRef.current = recognition;
@@ -59,7 +70,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({ onTranscript
         recognitionRef.current.abort();
       }
     };
-  }, [onTranscript, showAlert]);
+  }, [onTranscriptUpdate, showAlert]);
 
   const handleToggleRecording = () => {
     if (!recognitionRef.current) {
@@ -71,9 +82,10 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({ onTranscript
       recognitionRef.current.stop();
     } else {
       try {
+        fullTranscriptRef.current = '';
+        onRecordingStart();
         recognitionRef.current.start();
       } catch (error) {
-        // This can happen if the user clicks the button again quickly before the 'end' event fires.
         if (!(error instanceof DOMException && error.name === 'InvalidStateError')) {
            console.error("Could not start speech recognition:", error);
            showAlert("Não foi possível iniciar a gravação. Tente novamente.", "Erro");

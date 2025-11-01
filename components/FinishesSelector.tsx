@@ -50,7 +50,7 @@ export const FinishesSelector: React.FC<FinishesSelectorProps> = ({ onFinishSele
                 console.error("Speech recognition error", event.error);
                 let errorMessage = `Erro no reconhecimento de voz: ${event.error}`;
                 if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-                    errorMessage = "A permissão para usar o microfone foi negada. Verifique as configurações do seu navegador.";
+                    errorMessage = "A permissão para usar o microfone foi negada.";
                 } else if (event.error === 'no-speech') {
                     errorMessage = "Nenhuma fala foi detectada.";
                 }
