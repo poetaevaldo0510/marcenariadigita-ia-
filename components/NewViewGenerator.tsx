@@ -19,6 +19,7 @@ export const NewViewGenerator: React.FC<NewViewGeneratorProps> = ({ isOpen, proj
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedImageSrc, setGeneratedImageSrc] = useState<string | null>(null);
 
+    const [availableStyles, setAvailableStyles] = useState(initialStylePresets);
     const [suggestions, setSuggestions] = useState<string[]>([]);
     const [isSuggesting, setIsSuggesting] = useState(false);
 
@@ -30,6 +31,7 @@ export const NewViewGenerator: React.FC<NewViewGeneratorProps> = ({ isOpen, proj
             setFinish('');
             setGeneratedImageSrc(null);
             setSuggestions([]);
+            setAvailableStyles(initialStylePresets);
         }
     }, [isOpen, project]);
 
@@ -127,8 +129,7 @@ Mantenha a forma, a estrutura e a perspectiva geral do móvel, alterando apenas 
                             <label htmlFor="style-select-new-view" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-2">Novo Estilo de Design</label>
                             <div className="flex items-center gap-2">
                                 <select id="style-select-new-view" value={style} onChange={(e) => setStyle(e.target.value)} className="flex-grow bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition">
-                                    {!initialStylePresets.includes(style) && <option key={style} value={style}>{style}</option>}
-                                    {initialStylePresets.map(s => <option key={s} value={s}>{s}</option>)}
+                                    {availableStyles.map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                                 <button onClick={handleSuggestStyles} disabled={isSuggesting} title="Sugerir estilos com IA" className="p-3 rounded-lg bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#4a4040] text-[#d4ac6e] disabled:opacity-50">
                                     {isSuggesting ? <Spinner size="sm"/> : <SparklesIcon />}
@@ -145,6 +146,9 @@ Mantenha a forma, a estrutura e a perspectiva geral do móvel, alterando apenas 
                                                 key={suggestion}
                                                 onClick={() => {
                                                     setStyle(suggestion);
+                                                    if (!availableStyles.includes(suggestion)) {
+                                                        setAvailableStyles(prev => [suggestion, ...prev]);
+                                                    }
                                                     setSuggestions([]); // Clear suggestions after selection
                                                 }}
                                                 className="px-3 py-1 bg-[#e6ddcd] dark:bg-[#4a4040] text-[#6a5f5f] dark:text-[#c7bca9] text-sm font-medium rounded-full hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f] transition"

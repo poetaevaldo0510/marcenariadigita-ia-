@@ -3,6 +3,7 @@ import type { ProjectHistoryItem, Client } from '../types';
 import { PDFExport, convertMarkdownToHtmlWithInlineStyles } from '../utils/helpers';
 import { LogoIcon, DownloadIcon, SparklesIcon, Spinner } from './Shared';
 import { estimateProjectCosts } from '../services/geminiService';
+import { useTranslation } from '../contexts/I18nContext';
 
 interface ProposalModalProps {
     isOpen: boolean;
@@ -13,9 +14,11 @@ interface ProposalModalProps {
 }
 
 export const ProposalModal: React.FC<ProposalModalProps> = ({ isOpen, onClose, project, client, showAlert }) => {
+    const { t } = useTranslation();
     const [costs, setCosts] = useState({ material: 0, labor: 0 });
     const [notes, setNotes] = useState('Validade da proposta: 15 dias.\nCondições de pagamento: 50% de entrada, 50% na entrega.\nPrazo de entrega: 30 dias úteis após a confirmação do pedido.');
     const [isEstimating, setIsEstimating] = useState(false);
+    const [isExporting, setIsExporting] = useState(false);
     const proposalContentRef = useRef<HTMLDivElement>(null);
 
     const totalCost = useMemo(() => costs.material + costs.labor, [costs]);
@@ -49,6 +52,19 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({ isOpen, onClose, p
         } finally {
             setIsEstimating(false);
         }
+    };
+    
+    const handleExportToFinancial = () => {
+        setIsExporting(true);
+        // Simulate API call to Conta Azul or other financial system
+        setTimeout(() => {
+            setIsExporting(false);
+            if (Math.random() > 0.1) { // 90% success rate for simulation
+                showAlert(t('export_to_financial_success'), 'Integração Financeira');
+            } else {
+                showAlert(t('export_to_financial_error'), 'Erro na Integração');
+            }
+        }, 2000);
     };
 
     if (!isOpen) return null;
@@ -180,6 +196,14 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({ isOpen, onClose, p
                             <p className="text-sm">Valor Total da Proposta:</p>
                             <p className="text-2xl font-bold text-[#b99256] dark:text-[#d4ac6e]">{formatCurrency(totalCost)}</p>
                         </div>
+                         <button
+                            onClick={handleExportToFinancial}
+                            disabled={isExporting}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
+                        >
+                            {isExporting ? <Spinner size="sm" /> : '›'}
+                            {isExporting ? t('exporting_to_financial') : t('export_to_financial')}
+                        </button>
                         <button onClick={handleExport} className="w-full bg-[#3e3535] dark:bg-[#d4ac6e] hover:bg-[#2d2424] dark:hover:bg-[#c89f5e] text-white dark:text-[#3e3535] font-bold py-3 px-4 rounded-lg transition flex items-center justify-center gap-2">
                            <DownloadIcon /> Baixar Proposta em PDF
                         </button>

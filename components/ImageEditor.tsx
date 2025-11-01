@@ -112,7 +112,7 @@ export const ImageEditor: React.FC<ImageEditorProps> = ({ isOpen, imageSrc, proj
                         </button>
                         <button onClick={handleEdit} disabled={isEditing} className="bg-[#d4ac6e] hover:bg-[#c89f5e] text-[#3e3535] font-bold py-3 px-5 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50">
                             {isEditing ? <Spinner size="sm" /> : <WandIcon />}
-                            <span>{isEditing ? 'Otimizando...' : 'Otimizar'}</span>
+                            <span>{isEditing ? 'Editando...' : 'Editar'}</span>
                         </button>
                     </div>
                      {isSuggesting && (

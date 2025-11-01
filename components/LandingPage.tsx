@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { LogoIcon, CubeIcon, BlueprintIcon, BookIcon, ToolsIcon, CurrencyDollarIcon, StarIcon, CheckIcon } from './Shared';
+import { useTranslation } from '../contexts/I18nContext';
 
 interface LandingPageProps {
   onLoginSuccess: (email: string) => void;
@@ -116,6 +117,7 @@ const TestimonialCard: React.FC<{ quote: string; name: string; role: string; }> 
 );
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
+    const { t, language, setLanguage } = useTranslation();
     const [email, setEmail] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -148,30 +150,44 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                     <LogoIcon className="w-8 h-8" />
                     <h1 className="text-2xl font-semibold tracking-tight">MarcenApp</h1>
                 </div>
-                <button
-                    onClick={scrollToLogin}
-                    className="bg-[#3e3535] dark:bg-[#d4ac6e] text-white dark:text-[#3e3535] font-bold py-2 px-6 rounded-lg hover:bg-[#2d2424] dark:hover:bg-[#c89f5e] transition"
-                >
-                    Acessar
-                </button>
+                <div className="flex items-center gap-4">
+                     <div className="flex items-center gap-1 border border-[#dcd6c8] dark:border-[#4a4040] rounded-full p-1">
+                        <button onClick={() => setLanguage('pt-BR')} className={`px-2 py-0.5 rounded-full text-xs font-semibold transition ${language === 'pt-BR' ? 'bg-[#d4ac6e] text-white' : 'text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#e6ddcd] dark:hover:bg-[#4a4040]'}`}>PT</button>
+                        <button onClick={() => setLanguage('en')} className={`px-2 py-0.5 rounded-full text-xs font-semibold transition ${language === 'en' ? 'bg-[#d4ac6e] text-white' : 'text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#e6ddcd] dark:hover:bg-[#4a4040]'}`}>EN</button>
+                    </div>
+                    <button
+                        onClick={scrollToLogin}
+                        className="bg-[#3e3535] dark:bg-[#d4ac6e] text-white dark:text-[#3e3535] font-bold py-2 px-6 rounded-lg hover:bg-[#2d2424] dark:hover:bg-[#c89f5e] transition"
+                    >
+                        {t('access')}
+                    </button>
+                </div>
             </header>
 
             <main>
                 {/* Hero Section */}
-                <section className="text-center py-20 md:py-32 px-6" style={{ backgroundImage: 'radial-gradient(circle, rgba(212,172,110,0.08) 0%, rgba(245,241,232,0) 60%)' }}>
-                    <h2 className="text-4xl md:text-6xl font-bold font-serif mb-4 animate-fadeInUp">
-                        Transforme Ideias em Móveis Planejados. <span className="text-[#b99256] dark:text-[#d4ac6e]">Em Minutos.</span>
-                    </h2>
-                    <p className="text-lg md:text-xl max-w-3xl mx-auto text-[#6a5f5f] dark:text-[#c7bca9] mb-8 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
-                        De um simples rascunho à proposta final. Use nossa IA, Iara, para criar projetos 3D, planos de corte e orçamentos que impressionam seus clientes e otimizam sua produção.
-                    </p>
-                    <button
-                        onClick={scrollToLogin}
-                        className="bg-gradient-to-r from-[#d4ac6e] to-[#b99256] text-[#3e3535] font-bold py-4 px-8 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 text-lg animate-fadeInUp"
-                        style={{ animationDelay: '0.4s' }}
-                    >
-                        Comece a Criar Agora &rarr;
-                    </button>
+                <section className="py-20 md:py-28 px-6" style={{ backgroundImage: 'radial-gradient(circle, rgba(212,172,110,0.08) 0%, rgba(245,241,232,0) 60%)' }}>
+                    <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                        <div className="text-center md:text-left animate-slideInLeft">
+                             <h2 className="text-4xl md:text-6xl font-bold font-serif mb-4" dangerouslySetInnerHTML={{ __html: t('hero_title').replace('Em Minutos.', '<span class="text-[#b99256] dark:text-[#d4ac6e]">In Minutes.</span>').replace('In Minutes.', '<span class="text-[#b99256] dark:text-[#d4ac6e]">Em Minutos.</span>') }} />
+                            <p className="text-lg md:text-xl max-w-2xl mx-auto md:mx-0 text-[#6a5f5f] dark:text-[#c7bca9] mb-8">
+                                {t('hero_subtitle')}
+                            </p>
+                            <button
+                                onClick={scrollToLogin}
+                                className="bg-gradient-to-r from-[#d4ac6e] to-[#b99256] text-[#3e3535] font-bold py-4 px-8 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 text-lg"
+                            >
+                                {t('start_creating_now')} &rarr;
+                            </button>
+                        </div>
+                         <div className="animate-slideInRight">
+                            <img 
+                                src="https://images.unsplash.com/photo-1600121848594-d8644e57abab?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" 
+                                alt="Marcenaria moderna e elegante" 
+                                className="rounded-xl shadow-2xl shadow-stone-400/30 dark:shadow-black/40 aspect-video object-cover"
+                            />
+                        </div>
+                    </div>
                 </section>
 
                 {/* Features Section */}
@@ -253,7 +269,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                             <p className="text-[#6a5f5f] dark:text-[#c7bca9] text-lg mt-2 text-center">Acesse sua conta ou crie um acesso gratuito para começar.</p>
                         </div>
                         <div className="bg-[#fffefb]/80 dark:bg-[#4a4040] backdrop-blur-sm p-8 rounded-xl border border-[#e6ddcd] dark:border-[#4a4040] shadow-2xl shadow-stone-300/30 dark:shadow-black/30">
-                            <h3 className="text-2xl font-serif font-semibold text-center text-[#3e3535] dark:text-[#f5f1e8] mb-6">Acesse sua conta</h3>
+                            <h3 className="text-2xl font-serif font-semibold text-center text-[#3e3535] dark:text-[#f5f1e8] mb-6">{t('access_account')}</h3>
                             <form onSubmit={handleLogin} className="space-y-6">
                                 <div>
                                     <label htmlFor="email-landing" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9]">
@@ -278,7 +294,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                                         disabled={isLoading}
                                         className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-base font-medium text-[#3e3535] bg-[#d4ac6e] hover:bg-[#c89f5e] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#d4ac6e] transition disabled:opacity-50"
                                     >
-                                        {isLoading ? 'Verificando...' : 'Entrar / Cadastrar'}
+                                        {isLoading ? t('checking') : t('enter')}
                                     </button>
                                 </div>
                             </form>

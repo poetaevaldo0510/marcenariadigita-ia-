@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { LogoIcon, UserIcon, SearchIcon, HeadsetIcon, StoreIcon, HistoryIcon, LogoutIcon, InfoIcon, UsersIcon, SunIcon, MoonIcon, CheckIcon, BookIcon, ToolsIcon, CurrencyDollarIcon, WhatsappIcon, CommunityIcon, ProIcon, ARIcon, CogIcon, TrophyIcon } from './Shared';
+import { useTranslation } from '../contexts/I18nContext';
 
 interface HeaderProps {
     userEmail: string;
@@ -21,14 +22,16 @@ interface HeaderProps {
     onOpenAR: () => void;
     onOpenAdmin: () => void;
     onOpenPerformance: () => void;
+    onOpenSettings: () => void;
     onLogout: () => void;
     theme: 'light' | 'dark';
     setTheme: (theme: 'light' | 'dark') => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ userEmail, isAdmin, onOpenResearch, onOpenLive, onOpenDistributors, onOpenClients, onOpenHistory, onOpenAbout, onOpenBomGenerator, onOpenCuttingPlanGenerator, onOpenCostEstimator, onOpenWhatsapp, onOpenAutoPurchase, onOpenEmployeeManagement, onOpenLearningHub, onOpenEncontraPro, onOpenAR, onOpenAdmin, onOpenPerformance, onLogout, theme, setTheme }) => {
+export const Header: React.FC<HeaderProps> = ({ userEmail, isAdmin, onOpenResearch, onOpenLive, onOpenDistributors, onOpenClients, onOpenHistory, onOpenAbout, onOpenBomGenerator, onOpenCuttingPlanGenerator, onOpenCostEstimator, onOpenWhatsapp, onOpenAutoPurchase, onOpenEmployeeManagement, onOpenLearningHub, onOpenEncontraPro, onOpenAR, onOpenAdmin, onOpenPerformance, onOpenSettings, onLogout, theme, setTheme }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
+    const { t } = useTranslation();
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -115,9 +118,9 @@ export const Header: React.FC<HeaderProps> = ({ userEmail, isAdmin, onOpenResear
                                         <button onClick={() => {onOpenDistributors(); setIsMenuOpen(false);}} className="flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><StoreIcon /> Distribuidores</button>
                                         <div className="my-1 h-px bg-[#e6ddcd] dark:bg-[#5a4f4f]"></div>
                                     </nav>
-                                    <button onClick={() => {onOpenHistory(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><HistoryIcon /> Histórico de Projetos</button>
-                                    <button onClick={() => {onOpenClients(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><UsersIcon /> Clientes</button>
-                                    <button onClick={() => {onOpenPerformance(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><TrophyIcon /> Meu Desempenho</button>
+                                    <button onClick={() => {onOpenHistory(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><HistoryIcon /> {t('project_history')}</button>
+                                    <button onClick={() => {onOpenClients(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><UsersIcon /> {t('clients')}</button>
+                                    <button onClick={() => {onOpenPerformance(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><TrophyIcon /> {t('my_performance')}</button>
                                     <div className="my-1 h-px bg-[#e6ddcd] dark:bg-[#5a4f4f]"></div>
                                     <div className="text-sm px-3 py-2 text-[#6a5f5f] dark:text-[#c7bca9]">
                                         <strong>Ferramentas Autônomas</strong>
@@ -132,15 +135,16 @@ export const Header: React.FC<HeaderProps> = ({ userEmail, isAdmin, onOpenResear
                                         </>
                                     )}
                                     <div className="my-1 h-px bg-[#e6ddcd] dark:bg-[#5a4f4f]"></div>
+                                     <button onClick={() => {onOpenSettings(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><CogIcon /> {t('settings')}</button>
                                     <button onClick={handleThemeToggle} className="w-full flex items-center justify-between px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]">
                                         <span className="flex items-center gap-3">{theme === 'light' ? <MoonIcon /> : <SunIcon />} Tema {theme === 'light' ? 'Escuro' : 'Claro'}</span>
                                         <div className={`w-10 h-5 flex items-center rounded-full p-1 transition-colors ${theme === 'dark' ? 'bg-[#d4ac6e]' : 'bg-[#dcd6c8]'}`}>
                                             <div className={`bg-white w-3.5 h-3.5 rounded-full shadow-md transform transition-transform ${theme === 'dark' ? 'translate-x-5' : ''}`}></div>
                                         </div>
                                     </button>
-                                    <button onClick={() => {onOpenAbout(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><InfoIcon /> Sobre</button>
+                                    <button onClick={() => {onOpenAbout(); setIsMenuOpen(false);}} className="w-full flex items-center gap-3 px-3 py-2 rounded text-[#6a5f5f] dark:text-[#c7bca9] hover:bg-[#f0e9dc] dark:hover:bg-[#3e3535]"><InfoIcon /> {t('about')}</button>
                                     <div className="my-1 h-px bg-[#e6ddcd] dark:bg-[#5a4f4f]"></div>
-                                    <button onClick={onLogout} className="w-full flex items-center gap-3 px-3 py-2 rounded text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20"><LogoutIcon /> Sair</button>
+                                    <button onClick={onLogout} className="w-full flex items-center gap-3 px-3 py-2 rounded text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20"><LogoutIcon /> {t('logout')}</button>
                                 </div>
                             )}
                         </div>

@@ -8,6 +8,7 @@ import { projectTypePresets, initialStylePresets } from './services/presetServic
 import { generateImage, generateText, editImage, generateCuttingPlan, editFloorPlan, estimateProjectCosts, generateAssemblyDetails, parseBomToList, findSupplierPrice, calculateFinancialSummary, fetchSupplierCatalog, calculateShippingCost, suggestAlternativeStyles, generateFloorPlanFrom3D, generate3Dfrom2D } from './services/geminiService';
 import { getHistory, addProjectToHistory, updateProjectInHistory, removeProjectFromHistory, getClients, saveClient, removeClient, getFavoriteFinishes, addFavoriteFinish, removeFavoriteFinish } from './services/historyService';
 import { convertMarkdownToHtml } from './utils/helpers';
+import { useTranslation } from './contexts/I18nContext';
 
 
 // Components
@@ -35,6 +36,8 @@ import { ARViewer } from './components/ARViewer';
 import { EncontraProModal } from './components/EncontraProModal';
 import { PerformanceModal } from './components/PerformanceModal';
 import { WhatsappSenderModal } from './components/WhatsappSenderModal';
+import { SettingsModal } from './components/SettingsModal';
+import { LeadNotification } from './components/LeadNotification';
 import DashboardAdmin from './admin/DashboardAdmin';
 
 // --- SUB-COMPONENTS ---
@@ -327,6 +330,7 @@ interface AppProps {
 const ADMIN_EMAILS = ['evaldo0510@gmail.com'];
 
 export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
+  const { t } = useTranslation();
   // --- STATE MANAGEMENT ---
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('Gerando projeto...');
@@ -357,6 +361,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
   const [isResearchAssistantOpen, setIsResearchAssistantOpen] = useState(false);
   const [isDistributorFinderOpen, setIsDistributorFinderOpen] = useState(false);
   const [isClientPanelOpen, setIsClientPanelOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [imageEditorState, setImageEditorState] = useState<{ isOpen: boolean; src: string }>({ isOpen: false, src: '' });
   const [layoutEditorState, setLayoutEditorState] = useState<{ isOpen: boolean; src: string }>({ isOpen: false, src: '' });
   const [isProposalModalOpen, setIsProposalModalOpen] = useState(false);
@@ -801,7 +806,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                         onClick={() => setIsProposalModalOpen(true)}
                         className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm flex items-center gap-2"
                     >
-                        <DocumentTextIcon /> Gerar Proposta
+                        <DocumentTextIcon /> {t('generate_proposal')}
                     </button>
                     {currentProject.image2d ? (
                         <button
@@ -970,16 +975,17 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
 
     return (
         <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+            <LeadNotification />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Left Column: Input Panel */}
             <div className="bg-[#fffefb] dark:bg-[#3e3535] p-6 rounded-lg shadow-lg border border-[#e6ddcd] dark:border-[#4a4040] space-y-6 self-start">
                 <button onClick={resetForm} className="w-full bg-[#e6ddcd] dark:bg-[#4a4040] text-center py-2 px-4 rounded-lg font-semibold hover:bg-[#dcd6c8] dark:hover:bg-[#5a4f4f] transition flex items-center justify-center gap-2">
-                <DocumentDuplicateIcon /> Novo Projeto
+                <DocumentDuplicateIcon /> {t('new_project')}
                 </button>
                 
                 {/* Step 1: Description */}
                 <div>
-                <h2 className="text-2xl font-semibold mb-4 text-[#3e3535] dark:text-[#f5f1e8]">Passo 1: Descreva a sua Ideia</h2>
+                <h2 className="text-2xl font-semibold mb-4 text-[#3e3535] dark:text-[#f5f1e8]">{t('step_1')}</h2>
                 <div className="flex gap-2 items-start">
                     <textarea
                     ref={descriptionTextAreaRef}
@@ -1003,7 +1009,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
 
                 {/* Step 3: Details */}
                 <div>
-                <h2 className="text-2xl font-semibold mb-4 text-[#3e3535] dark:text-[#f5f1e8]">Passo 3: Detalhes e Geração</h2>
+                <h2 className="text-2xl font-semibold mb-4 text-[#3e3535] dark:text-[#f5f1e8]">{t('step_3')}</h2>
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
                         <label htmlFor="style" className="font-medium text-[#6a5f5f] dark:text-[#c7bca9]">Estilo do Projeto</label>
@@ -1032,7 +1038,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
                 title={!isProjectCreationAllowed ? `Você atingiu o limite de ${projectLimit} projetos/mês do plano Hobby.` : ''}
                 className="w-full bg-gradient-to-r from-[#d4ac6e] to-[#b99256] text-[#3e3535] font-bold py-4 px-6 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg"
                 >
-                {isLoading ? <><Spinner size="sm" /> Gerando...</> : <><WandIcon /> Gerar Projeto com Iara</>}
+                {isLoading ? <><Spinner size="sm" /> {t('generating')}</> : <><WandIcon /> {t('generate_project_with_iara')}</>}
                 </button>
                 {userPlan === 'hobby' && (
                     <div className="mt-2 text-center text-sm text-[#8a7e7e] dark:text-[#a89d8d]">
@@ -1084,6 +1090,7 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
         onOpenAR={() => openFutureFeature('Realidade Aumentada', <AREarlyAccessPreview />, <ARIcon />)}
         onOpenAdmin={() => setView('admin')}
         onOpenPerformance={() => setIsPerformanceModalOpen(true)}
+        onOpenSettings={() => setIsSettingsModalOpen(true)}
       />
       {renderAppContent()}
       
@@ -1135,6 +1142,11 @@ export const App: React.FC<AppProps> = ({ onLogout, userEmail, userPlan }) => {
             onClose={() => setIsWhatsappSenderOpen(false)}
             project={currentProject}
             client={clients.find(c => c.id === currentProject?.clientId) || null}
+            showAlert={showAlert}
+        />
+        <SettingsModal 
+            isOpen={isSettingsModalOpen}
+            onClose={() => setIsSettingsModalOpen(false)}
             showAlert={showAlert}
         />
     </div>

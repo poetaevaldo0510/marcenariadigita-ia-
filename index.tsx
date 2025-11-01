@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { App } from './App';
 import { LandingPage } from './components/LandingPage';
+import { I18nProvider } from './contexts/I18nContext';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -51,7 +52,9 @@ const AuthWrapper = () => {
 
   return (
     <React.StrictMode>
-      {renderContent()}
+      <I18nProvider>
+        {renderContent()}
+      </I18nProvider>
     </React.StrictMode>
   );
 };
