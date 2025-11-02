@@ -9,6 +9,12 @@ interface LandingPageProps {
   onLoginSuccess: (email: string) => void;
 }
 
+const landingPageImages = {
+  hero: "https://images.unsplash.com/photo-1600121848594-d8644e57abab?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  howItWorks: "https://images.unsplash.com/photo-1596079890744-c1a0462d0975?q=80&w=1771&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  testimonials: "https://images.unsplash.com/photo-1616046229478-9901c5536a45?q=80&w=1780&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+};
+
 const plans = [
   {
     name: 'Hobby',
@@ -240,7 +246,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                         </div>
                          <div className="animate-slideInRight">
                             <img 
-                                src="https://images.unsplash.com/photo-1600121848594-d8644e57abab?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" 
+                                src={landingPageImages.hero} 
                                 alt="Marcenaria moderna e elegante" 
                                 className="rounded-xl shadow-2xl shadow-stone-400/30 dark:shadow-black/40 aspect-video object-cover"
                             />
@@ -283,7 +289,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                     <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                         <div className="animate-slideInLeft">
                             <img 
-                                src="https://images.unsplash.com/photo-1596079890744-c1a0462d0975?q=80&w=1771&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" 
+                                src={landingPageImages.howItWorks} 
                                 alt="Interior moderno com móveis planejados" 
                                 className="rounded-xl shadow-2xl shadow-stone-400/30 dark:shadow-black/40 aspect-square object-cover"
                             />
@@ -318,7 +324,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                 </section>
 
                 {/* Testimonials Section */}
-                <section id="testimonials" className="py-20 px-6 bg-cover bg-center relative" style={{backgroundImage: 'url(https://images.unsplash.com/photo-1616046229478-9901c5536a45?q=80&w=1780&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D)'}}>
+                <section id="testimonials" className="py-20 px-6 bg-cover bg-center relative" style={{backgroundImage: `url(${landingPageImages.testimonials})`}}>
                      <div className="max-w-6xl mx-auto relative grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                         <div>
                             <h2 className="text-3xl md:text-4xl font-bold font-serif mb-8">O que os Marceneiros Dizem</h2>
