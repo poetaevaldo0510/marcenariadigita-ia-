@@ -355,7 +355,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                         </div>
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                             {plans.map(plan => (
-                                <PlanCard key={plan.name} plan={plan} onSelect={scrollToWaitlist} /> {/* Updated CTA for plans */}
+                                <PlanCard key={plan.name} plan={plan} onSelect={scrollToWaitlist} />
                             ))}
                         </div>
                     </div>
@@ -455,7 +455,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                                     <button
                                         type="submit"
                                         disabled={isSubmittingWaitlist}
-                                        className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-base font-medium text-[#3e3535] bg-[#d4ac6e] hover:bg-[#c89f5e] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#d4ac6e] transition disabled:opacity-50"
+                                        className="w-full flex justify-center items-center gap-2 py-3 px-4 border border-transparent rounded-lg shadow-sm text-base font-medium text-[#3e3535] bg-[#d4ac6e] hover:bg-[#c89f5e] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#d4ac6e] transition disabled:opacity-50"
                                     >
                                         {isSubmittingWaitlist ? <Spinner size="sm" /> : <CheckIcon className="w-5 h-5"/>}
                                         <span>{isSubmittingWaitlist ? 'Enviando...' : 'Cadastrar na Lista de Espera'}</span>
