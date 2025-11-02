@@ -6,13 +6,14 @@ interface ClientPanelProps {
     isOpen: boolean;
     onClose: () => void;
     clients: Client[];
-    projects: ProjectHistoryItem[];
+    // Removed 'projects' prop as clients are now 'marceneiros' and not directly linked to furniture projects
     onSaveClient: (client: Omit<Client, 'id' | 'timestamp'> & { id?: string }) => void;
     onDeleteClient: (id: string) => void;
-    onViewProject: (project: ProjectHistoryItem) => void;
+    // Removed onViewProject as projects are no longer displayed here
 }
 
-const emptyForm: Omit<Client, 'id' | 'timestamp'> & { id?: string } = { name: '', email: '', phone: '', address: '', notes: '', status: 'lead' };
+// Added city and motivation to emptyForm
+const emptyForm: Omit<Client, 'id' | 'timestamp'> & { id?: string } = { name: '', email: '', phone: '', address: '', city: '', notes: '', status: 'lead', feedback: '', motivation: '' };
 
 const statusOptions: { value: Client['status']; label: string; color: string }[] = [
     { value: 'lead', label: 'Lead', color: 'bg-blue-500' },
@@ -25,10 +26,10 @@ export const ClientPanel: React.FC<ClientPanelProps> = ({
     isOpen,
     onClose,
     clients,
-    projects,
+    // projects, // Removed
     onSaveClient,
     onDeleteClient,
-    onViewProject
+    // onViewProject // Removed
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [formData, setFormData] = useState(emptyForm);
@@ -89,18 +90,18 @@ export const ClientPanel: React.FC<ClientPanelProps> = ({
             >
                 <div className="flex flex-col h-full">
                     <header className="p-4 border-b border-[#e6ddcd] dark:border-[#4a4040] flex justify-between items-center bg-[#fffefb] dark:bg-[#3e3535]">
-                        <h2 className="text-xl font-bold text-[#3e3535] dark:text-[#f5f1e8] flex items-center gap-2"><UsersIcon /> Clientes</h2>
+                        <h2 className="text-xl font-bold text-[#3e3535] dark:text-[#f5f1e8] flex items-center gap-2"><UsersIcon /> Gerenciar Marceneiros Parceiros / Contatos</h2>
                         <button onClick={onClose} className="text-[#8a7e7e] hover:text-[#3e3535] dark:hover:text-white text-2xl">&times;</button>
                     </header>
                     
                     {/* Form Section */}
                     <div id="client-panel-form" className="p-4 border-b border-[#e6ddcd] dark:border-[#4a4040] bg-[#fffefb] dark:bg-[#3e3535]">
-                         <h3 className="text-lg font-semibold text-[#6a5f5f] dark:text-[#c7bca9] mb-3">{isEditing ? 'Editar Cliente' : 'Adicionar Novo Cliente'}</h3>
+                         <h3 className="text-lg font-semibold text-[#6a5f5f] dark:text-[#c7bca9] mb-3">{isEditing ? 'Editar Contato de Marceneiro' : 'Adicionar Novo Marceneiro/Contato'}</h3>
                          <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label htmlFor="client-name" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-1">Nome do Cliente *</label>
-                                    <input id="client-name" type="text" name="name" placeholder="Nome Completo" value={formData.name} onChange={handleInputChange} required className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] p-2 rounded-lg border border-[#dcd6c8] dark:border-[#5a4f4f] focus:ring-[#d4ac6e] focus:border-[#d4ac6e]" />
+                                    <label htmlFor="client-name" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-1">Nome do Marceneiro/Empresa *</label>
+                                    <input id="client-name" type="text" name="name" placeholder="Nome Completo ou Razão Social" value={formData.name} onChange={handleInputChange} required className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] p-2 rounded-lg border border-[#dcd6c8] dark:border-[#5a4f4f] focus:ring-[#d4ac6e] focus:border-[#d4ac6e]" />
                                 </div>
                                 <div>
                                     <label htmlFor="client-status" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-1">Status</label>
@@ -111,25 +112,39 @@ export const ClientPanel: React.FC<ClientPanelProps> = ({
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label htmlFor="client-email" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-1">E-mail</label>
-                                    <input id="client-email" type="email" name="email" placeholder="email@cliente.com" value={formData.email} onChange={handleInputChange} className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] p-2 rounded-lg border border-[#dcd6c8] dark:border-[#5a4f4f] focus:ring-[#d4ac6e] focus:border-[#d4ac6e]" />
+                                    <label htmlFor="client-email" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-1">E-mail da Marcenaria</label>
+                                    <input id="client-email" type="email" name="email" placeholder="contato@marcenaria.com" value={formData.email} onChange={handleInputChange} className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] p-2 rounded-lg border border-[#dcd6c8] dark:border-[#5a4f4f] focus:ring-[#d4ac6e] focus:border-[#d4ac6e]" />
                                 </div>
                                 <div>
-                                    <label htmlFor="client-phone" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-1">Telefone</label>
+                                    <label htmlFor="client-phone" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-1">Telefone da Marcenaria</label>
                                     <input id="client-phone" type="tel" name="phone" placeholder="(XX) XXXXX-XXXX" value={formData.phone} onChange={handleInputChange} className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] p-2 rounded-lg border border-[#dcd6c8] dark:border-[#5a4f4f] focus:ring-[#d4ac6e] focus:border-[#d4ac6e]" />
                                 </div>
                             </div>
                             <div>
-                                <label htmlFor="client-address" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-1">Endereço</label>
+                                <label htmlFor="client-address" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-1">Endereço Completo da Marcenaria</label>
                                 <textarea id="client-address" name="address" placeholder="Rua, número, bairro, cidade..." value={formData.address} onChange={handleInputChange} rows={2} className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] p-2 rounded-lg border border-[#dcd6c8] dark:border-[#5a4f4f] focus:ring-[#d4ac6e] focus:border-[#d4ac6e]" />
                             </div>
+                             <div>
+                                <label htmlFor="client-city" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-1">Cidade de Atuação</label>
+                                <input id="client-city" type="text" name="city" placeholder="Ex: São Paulo, Rio de Janeiro" value={formData.city} onChange={handleInputChange} className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] p-2 rounded-lg border border-[#dcd6c8] dark:border-[#5a4f4f] focus:ring-[#d4ac6e] focus:border-[#d4ac6e]" />
+                            </div>
                             <div>
-                                <label htmlFor="client-notes" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-1">Notas</label>
-                                <textarea id="client-notes" name="notes" placeholder="Preferências, histórico de contatos, etc." value={formData.notes} onChange={handleInputChange} rows={3} className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] p-2 rounded-lg border border-[#dcd6c8] dark:border-[#5a4f4f] focus:ring-[#d4ac6e] focus:border-[#d4ac6e]" />
+                                <label htmlFor="client-notes" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-1">Notas Internas</label>
+                                <textarea id="client-notes" name="notes" placeholder="Detalhes da parceria, observações internas, etc." value={formData.notes} onChange={handleInputChange} rows={3} className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] p-2 rounded-lg border border-[#dcd6c8] dark:border-[#5a4f4f] focus:ring-[#d4ac6e] focus:border-[#d4ac6e]" />
+                            </div>
+                            {/* NEW: Feedback / Dores do Cliente */}
+                            <div>
+                                <label htmlFor="client-feedback" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-1">Feedback / Dores do Marceneiro</label>
+                                <textarea id="client-feedback" name="feedback" placeholder="Quais são as dores do marceneiro? Como o MarcenApp ajudou ou poderia ajudar?" value={formData.feedback} onChange={handleInputChange} rows={3} className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] p-2 rounded-lg border border-[#dcd6c8] dark:border-[#5a4f4f] focus:ring-[#d4ac6e] focus:border-[#d4ac6e]" />
+                            </div>
+                            {/* NEW: Motivation (for waitlist) */}
+                            <div>
+                                <label htmlFor="client-motivation" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9] mb-1">Motivação / Interesses (do Marceneiro no App)</label>
+                                <textarea id="client-motivation" name="motivation" placeholder="O que motivou o marceneiro a se interessar pelo MarcenApp? Quais funcionalidades ele mais valoriza?" value={formData.motivation} onChange={handleInputChange} rows={3} className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] p-2 rounded-lg border border-[#dcd6c8] dark:border-[#5a4f4f] focus:ring-[#d4ac6e] focus:border-[#d4ac6e]" />
                             </div>
                             <div className="flex justify-end gap-3">
                                 {isEditing && <button type="button" onClick={handleCancelEdit} className="bg-[#8a7e7e] hover:bg-[#6a5f5f] text-white font-bold py-2 px-4 rounded-lg">Cancelar</button>}
-                                <button type="submit" className="bg-[#3e3535] dark:bg-[#d4ac6e] hover:bg-[#2d2424] dark:hover:bg-[#c89f5e] text-white dark:text-[#3e3535] font-bold py-2 px-4 rounded-lg">{isEditing ? 'Salvar Alterações' : 'Adicionar Cliente'}</button>
+                                <button type="submit" className="bg-[#3e3535] dark:bg-[#d4ac6e] hover:bg-[#2d2424] dark:hover:bg-[#c89f5e] text-white dark:text-[#3e3535] font-bold py-2 px-4 rounded-lg">{isEditing ? 'Salvar Alterações' : 'Adicionar Marceneiro'}</button>
                             </div>
                          </form>
                     </div>
@@ -139,7 +154,7 @@ export const ClientPanel: React.FC<ClientPanelProps> = ({
                         <div className="relative">
                             <input
                                 type="text"
-                                placeholder="Buscar cliente..."
+                                placeholder="Buscar marceneiro/empresa..."
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
                                 className="w-full bg-[#fffefb] dark:bg-[#2d2424] border border-[#dcd6c8] dark:border-[#5a4f4f] rounded-lg p-2 pl-10 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e]"
@@ -151,17 +166,18 @@ export const ClientPanel: React.FC<ClientPanelProps> = ({
                     <main className="flex-grow overflow-y-auto p-4 bg-[#f5f1e8] dark:bg-[#3e3535]">
                         {clients.length === 0 ? (
                             <div className="text-center text-[#8a7e7e] dark:text-[#a89d8d] py-10 h-full flex flex-col justify-center items-center">
-                                <p className="font-semibold text-lg">Nenhum cliente cadastrado.</p>
+                                <p className="font-semibold text-lg">Nenhum marceneiro/contato cadastrado.</p>
                                 <p className="text-sm">Use o formulário acima para começar.</p>
                             </div>
                         ) : filteredClients.length === 0 ? (
                              <div className="text-center text-[#8a7e7e] dark:text-[#a89d8d] py-10 h-full flex flex-col justify-center items-center">
-                                <p className="font-semibold text-lg">Nenhum cliente encontrado.</p>
+                                <p className="font-semibold text-lg">Nenhum marceneiro/contato encontrado.</p>
                             </div>
                         ) : (
                             <div className="space-y-3">
                                 {filteredClients.map(client => {
-                                    const clientProjects = projects.filter(p => p.clientId === client.id);
+                                    // Removed logic for clientProjects as projects are no longer tied to 'marceneiro' clients
+                                    // const clientProjects = projects.filter(p => p.clientId === client.id);
                                     const isExpanded = expandedClientId === client.id;
                                     const statusInfo = statusOptions.find(s => s.value === client.status) || { label: 'Indefinido', color: 'bg-gray-500' };
 
@@ -176,10 +192,10 @@ export const ClientPanel: React.FC<ClientPanelProps> = ({
                                                     <p className="text-sm text-[#8a7e7e] dark:text-[#a89d8d] pl-5">{client.email || 'Sem e-mail'}</p>
                                                 </div>
                                                 <div className="flex items-center gap-1">
-                                                    <button onClick={(e) => { e.stopPropagation(); handleEdit(client); }} className="p-2 rounded-full text-[#8a7e7e] hover:bg-amber-100 dark:hover:bg-amber-500/20 hover:text-amber-600 dark:hover:text-amber-400 transition" title="Editar Cliente">
+                                                    <button onClick={(e) => { e.stopPropagation(); handleEdit(client); }} className="p-2 rounded-full text-[#8a7e7e] hover:bg-amber-100 dark:hover:bg-amber-500/20 hover:text-amber-600 dark:hover:text-amber-400 transition" title="Editar Marceneiro">
                                                         <WandIcon />
                                                     </button>
-                                                    <button onClick={(e) => { e.stopPropagation(); onDeleteClient(client.id); }} className="p-2 rounded-full text-[#8a7e7e] hover:bg-red-100 dark:hover:bg-red-500/20 hover:text-red-600 dark:hover:text-red-400 transition" title="Excluir Cliente">
+                                                    <button onClick={(e) => { e.stopPropagation(); onDeleteClient(client.id); }} className="p-2 rounded-full text-[#8a7e7e] hover:bg-red-100 dark:hover:bg-red-500/20 hover:text-red-600 dark:hover:text-red-400 transition" title="Excluir Marceneiro">
                                                         <TrashIcon />
                                                     </button>
                                                 </div>
@@ -188,9 +204,16 @@ export const ClientPanel: React.FC<ClientPanelProps> = ({
                                                 <div className="p-4 border-t border-[#e6ddcd] dark:border-[#4a4040] bg-[#f0e9dc] dark:bg-[#2d2424]/50 animate-fadeIn">
                                                     <div className="space-y-3">
                                                         {client.phone && <p className="text-sm"><strong className="text-[#6a5f5f] dark:text-[#c7bca9]">Telefone:</strong> {client.phone}</p>}
+                                                        {client.email && <p className="text-sm"><strong className="text-[#6a5f5f] dark:text-[#c7bca9]">Email:</strong> {client.email}</p>}
                                                         {client.address && <p className="text-sm"><strong className="text-[#6a5f5f] dark:text-[#c7bca9]">Endereço:</strong> {client.address}</p>}
-                                                        {client.notes && <div className="p-2 bg-[#f5f1e8] dark:bg-[#3e3535] rounded-md"><p className="text-sm whitespace-pre-wrap">{client.notes}</p></div>}
-                                                        {clientProjects.length > 0 ? (
+                                                        {client.city && <p className="text-sm"><strong className="text-[#6a5f5f] dark:text-[#c7bca9]">Cidade:</strong> {client.city}</p>}
+                                                        {client.notes && <div className="p-2 bg-[#f5f1e8] dark:bg-[#3e3535] rounded-md"><p className="text-sm whitespace-pre-wrap"><strong className="text-[#6a5f5f] dark:text-[#c7bca9]">Notas Internas:</strong> {client.notes}</p></div>}
+                                                        {/* NEW: Display Feedback */}
+                                                        {client.feedback && <div className="p-2 bg-[#f5f1e8] dark:bg-[#3e3535] rounded-md mt-2"><p className="text-sm"><strong className="text-[#6a5f5f] dark:text-[#c7bca9]">Feedback / Dores do Marceneiro:</strong> {client.feedback}</p></div>}
+                                                        {/* NEW: Display Motivation */}
+                                                        {client.motivation && <div className="p-2 bg-[#f5f1e8] dark:bg-[#3e3535] rounded-md mt-2"><p className="text-sm"><strong className="text-[#6a5f5f] dark:text-[#c7bca9]">Motivação / Interesses no App:</strong> {client.motivation}</p></div>}
+                                                        {/* Removed project display here */}
+                                                        {/* {clientProjects.length > 0 ? (
                                                             <div>
                                                                 <h4 className="text-sm font-semibold mt-3 text-[#6a5f5f] dark:text-[#c7bca9]">Projetos:</h4>
                                                                 <ul className="list-disc list-inside text-sm mt-1">
@@ -203,7 +226,7 @@ export const ClientPanel: React.FC<ClientPanelProps> = ({
                                                             </div>
                                                         ) : (
                                                             <p className="text-sm italic text-[#8a7e7e] dark:text-[#a89d8d] mt-2">Nenhum projeto associado.</p>
-                                                        )}
+                                                        )} */}
                                                     </div>
                                                 </div>
                                             )}

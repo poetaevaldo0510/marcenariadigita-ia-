@@ -12,10 +12,12 @@ interface NewViewGeneratorProps {
     onClose: () => void;
     onSaveComplete: () => Promise<void>;
     showAlert: (message: string, title?: string) => void;
+    initialStyle?: string | null; // Novo prop
+    initialFinish?: string | null; // Novo prop
 }
 
-export const NewViewGenerator: React.FC<NewViewGeneratorProps> = ({ isOpen, project, onSaveComplete, onClose, showAlert }) => {
-    const [style, setStyle] = useState(project.style);
+export const NewViewGenerator: React.FC<NewViewGeneratorProps> = ({ isOpen, project, onSaveComplete, onClose, showAlert, initialStyle, initialFinish }) => {
+    const [style, setStyle] = useState(initialStyle || project.style);
     const [finish, setFinish] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedImageSrc, setGeneratedImageSrc] = useState<string | null>(null);
@@ -32,15 +34,16 @@ export const NewViewGenerator: React.FC<NewViewGeneratorProps> = ({ isOpen, proj
 
     useEffect(() => {
         if (isOpen) {
-            setStyle(project.style);
-            setFinish('');
+            // Set default style and finish, prioritizing initial props
+            setStyle(initialStyle || project.style || 'Moderno');
+            setFinish(initialFinish || (project.selectedFinish ? `${project.selectedFinish.finish.name} da ${project.selectedFinish.manufacturer}` : 'madeira escura com veios marcantes'));
             setGeneratedImageSrc(null);
             setSuggestedStyles([]); // Reset suggestions
             setSuggestedFinishes([]); // Reset suggestions
             // Ensure initialStylePresets are available, but allow new ones to be added dynamically
             setAvailableStyles(initialStylePresets);
         }
-    }, [isOpen, project]);
+    }, [isOpen, project, initialStyle, initialFinish]);
 
     const handleSuggestStyles = async () => {
         setIsSuggestingStyles(true);

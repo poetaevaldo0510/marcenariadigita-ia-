@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Spinner } from '../components/Shared';
+import type { Client } from '../types'; // Import Client type
 
 interface Lead {
   id: string;
@@ -10,12 +11,13 @@ interface Lead {
   contato: string;
 }
 
-interface Marceneiro {
-  id: string;
-  nome: string;
-  cidade: string;
-  ativo: boolean;
-}
+// Use Client interface directly for consistency
+// interface Marceneiro {
+//   id: string;
+//   nome: string;
+//   cidade: string;
+//   ativo: boolean;
+// }
 
 interface Gamificacao {
   id: string;
@@ -28,13 +30,19 @@ interface Gamificacao {
 
 interface DashboardAdminProps {
     onNavigateBack: () => void;
+    clients: Client[]; // Receive clients from App.tsx
+    onUpdateClientStatus: (id: string, status: Client['status']) => void;
+    onDeleteClient: (id: string) => void;
 }
 
-export default function DashboardAdmin({ onNavigateBack }: DashboardAdminProps) {
+export default function DashboardAdmin({ onNavigateBack, clients, onUpdateClientStatus, onDeleteClient }: DashboardAdminProps) {
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [marceneiros, setMarceneiros] = useState<Marceneiro[]>([]);
   const [gamificacao, setGamificacao] = useState<Gamificacao[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Filter clients for active/lead and waitlist
+  const activeMarceneiros = clients.filter(c => c.status === 'active' || c.status === 'lead' || c.status === 'on-hold' || c.status === 'completed');
+  const waitlistLeads = clients.filter(c => c.status === 'waitlist');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -42,18 +50,16 @@ export default function DashboardAdmin({ onNavigateBack }: DashboardAdminProps) 
         try {
             // NOTE: These API endpoints are placeholders. In a real application, they would fetch data from a backend.
             // For this project, we will use mocked data if the fetch fails.
-            const [leadsRes, marceneirosRes, gamificacaoRes] = await Promise.all([
+            const [leadsRes, gamificacaoRes] = await Promise.all([
                 fetch("/api/encontrapro/leads?admin=true").catch(() => ({ ok: false, json: () => Promise.resolve([]) })),
-                fetch("/api/encontrapro/marceneiros?admin=true").catch(() => ({ ok: false, json: () => Promise.resolve([]) })),
                 fetch("/api/gamification/ranking?admin=true").catch(() => ({ ok: false, json: () => Promise.resolve([]) }))
             ]);
 
-            if (!leadsRes.ok || !marceneirosRes.ok || !gamificacaoRes.ok) {
+            if (!leadsRes.ok || !gamificacaoRes.ok) {
                  throw new Error('One or more API endpoints failed');
             }
            
             setLeads(await leadsRes.json());
-            setMarceneiros(await marceneirosRes.json());
             setGamificacao(await gamificacaoRes.json());
         } catch (error) {
             console.warn("Using mocked data for admin panel as API calls failed:", error);
@@ -61,13 +67,9 @@ export default function DashboardAdmin({ onNavigateBack }: DashboardAdminProps) 
                 { id: '1', nomeCliente: 'Ana Paula', titulo: 'Cozinha Planejada', descricao: '', status: 'Novo', contato: 'ana.p@example.com' },
                 { id: '2', nomeCliente: 'Bruno Lima', titulo: 'Guarda-roupa', descricao: '', status: 'Contatado', contato: 'bruno.l@example.com' }
             ]);
-            setMarceneiros([
-                { id: 'm1', nome: 'João Silva', cidade: 'São Paulo', ativo: true },
-                { id: 'm2', nome: 'Maria Costa', cidade: 'Rio de Janeiro', ativo: false }
-            ]);
             setGamificacao([
-                { id: 'g1', marceneiroId: 'm1', pontos: 1250, conquistas: ['Projetista Rápido'], nivel: 5 },
-                { id: 'g2', marceneiroId: 'm2', pontos: 800, conquistas: [], nivel: 3 }
+                { id: 'g1', marceneiroId: 'marceneiro_1', pontos: 1250, conquistas: ['Projetista Rápido'], nivel: 5 }, // Use client.id
+                { id: 'g2', marceneiroId: 'marceneiro_2', pontos: 800, conquistas: [], nivel: 3 } // Use client.id
             ]);
         } finally {
             setIsLoading(false);
@@ -77,15 +79,27 @@ export default function DashboardAdmin({ onNavigateBack }: DashboardAdminProps) 
     fetchData();
   }, []);
   
-  const handleToggleMarceneiro = async (marceneiro: Marceneiro) => {
-    setMarceneiros(prev => prev.map(m => m.id === marceneiro.id ? { ...m, ativo: !m.ativo } : m));
-    try {
-        await fetch(`/api/encontrapro/marceneiros/${marceneiro.id}/toggle`, { method: 'POST' });
-    } catch (error) {
-        console.error("Failed to toggle marceneiro status:", error);
-        setMarceneiros(prev => prev.map(m => m.id === marceneiro.id ? { ...m, ativo: !m.ativo } : m));
-    }
+  // Handlers for waitlist leads (simulated actions on client prop)
+  const handleApproveWaitlistLead = (client: Client) => {
+    // When approving, convert the waitlist client to a 'lead' (or 'active') in the main client list
+    onUpdateClientStatus(client.id, 'lead'); 
+    alert(`Marceneiro ${client.name} aprovado e movido para status 'Lead'!`);
   };
+
+  const handleRejectWaitlistLead = (id: string) => {
+    // Simply delete the client from the database
+    onDeleteClient(id);
+    alert(`Marceneiro da lista de espera (ID: ${id}) rejeitado e removido.`);
+  };
+
+  // Re-enable/disable Marceneiro (active clients)
+  const handleToggleMarceneiroStatus = (client: Client) => {
+      // Toggle between 'active' and 'on-hold' for existing clients
+      const newStatus = client.status === 'active' ? 'on-hold' : 'active';
+      onUpdateClientStatus(client.id, newStatus);
+      alert(`Status do marceneiro ${client.name} alterado para '${newStatus}'.`);
+  };
+
 
   const Table: React.FC<{ headers: string[], children: React.ReactNode }> = ({ headers, children }) => (
       <div className="overflow-x-auto">
@@ -134,7 +148,7 @@ export default function DashboardAdmin({ onNavigateBack }: DashboardAdminProps) 
       </div>
       
       <section className="mb-12">
-        <h2 className="text-2xl font-semibold font-serif text-[#6a5f5f] dark:text-[#c7bca9] mb-4">Novos Leads</h2>
+        <h2 className="text-2xl font-semibold font-serif text-[#6a5f5f] dark:text-[#c7bca9] mb-4">Novos Leads de Clientes (EncontraPro)</h2>
         <Table headers={['Cliente', 'Projeto', 'Status', 'Contatar']}>
             {leads.map(l=>(
               <TableRow key={l.id}>
@@ -152,13 +166,48 @@ export default function DashboardAdmin({ onNavigateBack }: DashboardAdminProps) 
             ))}
         </Table>
       </section>
+
+      {/* NEW SECTION: Waitlist Leads */}
+      <section className="mb-12">
+        <h2 className="text-2xl font-semibold font-serif text-[#6a5f5f] dark:text-[#c7bca9] mb-4">Leads da Lista de Espera (Marceneiros)</h2>
+        {waitlistLeads.length === 0 ? (
+            <p className="text-[#8a7e7e] dark:text-[#a89d8d] text-center py-6">Nenhum marceneiro na lista de espera no momento.</p>
+        ) : (
+            <Table headers={['Marceneiro/Empresa', 'Email', 'Cidade', 'Motivação/Interesses', 'Ações']}>
+                {waitlistLeads.map(client => (
+                    <TableRow key={client.id}>
+                        <TableCell>{client.name}</TableCell>
+                        <TableCell>{client.email}</TableCell>
+                        <TableCell>{client.city || 'N/A'}</TableCell>
+                        <TableCell className="text-xs max-w-xs">{client.motivation || 'N/A'}</TableCell>
+                        <TableCell>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => handleApproveWaitlistLead(client)}
+                                    className="bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 font-semibold py-2 px-3 rounded-lg text-sm hover:bg-green-200 dark:hover:bg-green-800 transition"
+                                >
+                                    Aprovar & Ativar
+                                </button>
+                                <button
+                                    onClick={() => handleRejectWaitlistLead(client.id)}
+                                    className="bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 font-semibold py-2 px-3 rounded-lg text-sm hover:bg-red-200 dark:hover:bg-red-800 transition"
+                                >
+                                    Rejeitar
+                                </button>
+                            </div>
+                        </TableCell>
+                    </TableRow>
+                ))}
+            </Table>
+        )}
+      </section>
       
       <section className="mb-12">
         <h2 className="text-2xl font-semibold font-serif text-[#6a5f5f] dark:text-[#c7bca9] mb-4">Ranking e Gamificação</h2>
         <Table headers={['Marceneiro', 'Pontos', 'Badges', 'Nível']}>
             {gamificacao.map(g=>(
               <TableRow key={g.id}>
-                <TableCell>{marceneiros.find(m=>m.id===g.marceneiroId)?.nome || '-'}</TableCell>
+                <TableCell>{clients.find(m=>m.id===g.marceneiroId)?.name || '-'}</TableCell>
                 <TableCell>{g.pontos}</TableCell>
                 <TableCell>
                     {g.conquistas && g.conquistas.length > 0
@@ -176,23 +225,24 @@ export default function DashboardAdmin({ onNavigateBack }: DashboardAdminProps) 
       </section>
       
       <section className="mb-12">
-        <h2 className="text-2xl font-semibold font-serif text-[#6a5f5f] dark:text-[#c7bca9] mb-4">Marceneiros (Gestão)</h2>
-        <Table headers={['Nome', 'Cidade', 'Status', 'Ações']}>
-            {marceneiros.map(m=>(
-              <TableRow key={m.id}>
-                <TableCell>{m.nome}</TableCell>
-                <TableCell>{m.cidade}</TableCell>
+        <h2 className="text-2xl font-semibold font-serif text-[#6a5f5f] dark:text-[#c7bca9] mb-4">Marceneiros Ativos (Gestão)</h2>
+        <Table headers={['Nome', 'Cidade', 'Status', 'Feedback', 'Ações']}>
+            {activeMarceneiros.map(client => (
+              <TableRow key={client.id}>
+                <TableCell>{client.name}</TableCell>
+                <TableCell>{client.city || client.address || '-'}</TableCell>
                 <TableCell>
-                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${m.ativo ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'}`}>
-                        {m.ativo ? "Ativo" : "Inativo"}
+                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${client.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300'}`}>
+                        {client.status === 'active' ? "Ativo" : "Em Pausa"}
                     </span>
                 </TableCell>
+                <TableCell className="text-xs max-w-xs">{client.feedback || '-'}</TableCell>
                 <TableCell>
                   <button 
-                    onClick={() => handleToggleMarceneiro(m)}
-                    className={`font-semibold py-2 px-4 rounded-lg text-sm transition ${m.ativo ? 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900' : 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900'}`}
+                    onClick={() => handleToggleMarceneiroStatus(client)}
+                    className={`font-semibold py-2 px-4 rounded-lg text-sm transition ${client.status === 'active' ? 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900' : 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900'}`}
                   >
-                      {m.ativo ? "Desativar" : "Ativar"}
+                      {client.status === 'active' ? "Desativar" : "Ativar"}
                   </button>
                 </TableCell>
               </TableRow>

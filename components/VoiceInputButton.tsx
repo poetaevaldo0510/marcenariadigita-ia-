@@ -11,6 +11,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({ onRecordingS
   const [isRecording, setIsRecording] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null); // To hold the stream from getUserMedia
 
   useEffect(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -39,8 +40,11 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({ onRecordingS
     recognition.onend = () => {
       setIsRecording(false);
       setIsSpeaking(false);
-      // Signal to parent component that speech has ended and state can be finalized.
-      onTranscriptUpdate('', true);
+      onTranscriptUpdate('', true); // Signal to parent component that speech has ended and state can be finalized.
+      if (mediaStreamRef.current) { // Ensure to stop the stream if it was started by getUserMedia
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+        mediaStreamRef.current = null;
+      }
     };
 
     recognition.onerror = (event: any) => {
@@ -54,6 +58,10 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({ onRecordingS
       showAlert(errorMessage, "Erro de Gravação");
       setIsRecording(false);
       setIsSpeaking(false);
+      if (mediaStreamRef.current) { // Ensure to stop the stream in case of error
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+        mediaStreamRef.current = null;
+      }
     };
 
     recognitionRef.current = recognition;
@@ -62,10 +70,14 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({ onRecordingS
       if (recognitionRef.current) {
         recognitionRef.current.abort();
       }
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+        mediaStreamRef.current = null;
+      }
     };
   }, [onTranscriptUpdate, showAlert]);
 
-  const handleToggleRecording = () => {
+  const handleToggleRecording = async () => {
     if (!recognitionRef.current) {
       showAlert("O reconhecimento de voz não é suportado pelo seu navegador.", "Funcionalidade Indisponível");
       return;
@@ -75,18 +87,37 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({ onRecordingS
       recognitionRef.current.stop();
     } else {
       try {
+        // Explicitly request microphone access first
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaStreamRef.current = stream; // Store the stream for cleanup
         onRecordingStart();
         recognitionRef.current.start();
       } catch (error) {
-        if (!(error instanceof DOMException && error.name === 'InvalidStateError')) {
-           console.error("Could not start speech recognition:", error);
-           showAlert("Não foi possível iniciar a gravação. Tente novamente.", "Erro");
+        console.error("Could not start speech recognition or get microphone access:", error);
+        let errorMessage = "Não foi possível iniciar a gravação. Verifique as permissões do seu microfone.";
+        if (error instanceof DOMException) {
+            if (error.name === 'NotAllowedError' || error.name === 'SecurityError') {
+                errorMessage = "A permissão para usar o microfone foi negada. Por favor, habilite o acesso ao microfone nas configurações do seu navegador e recarregue a página.";
+            } else if (error.name === 'NotFoundError') {
+                errorMessage = "Nenhum microfone encontrado no seu dispositivo.";
+            } else if (error.name === 'AbortError') {
+                 errorMessage = "A gravação foi abortada.";
+            } else if (error.name === 'NotReadableError') {
+                 errorMessage = "O microfone está sendo usado por outro aplicativo. Feche outros aplicativos e tente novamente.";
+            }
+        }
+        showAlert(errorMessage, "Erro de Gravação");
+        setIsRecording(false);
+        setIsSpeaking(false);
+        if (mediaStreamRef.current) {
+            mediaStreamRef.current.getTracks().forEach(track => track.stop());
+            mediaStreamRef.current = null;
         }
       }
     }
   };
 
-  const isSupported = !!recognitionRef.current;
+  const isSupported = !!recognitionRef.current && !!navigator.mediaDevices?.getUserMedia;
 
   return (
     <button

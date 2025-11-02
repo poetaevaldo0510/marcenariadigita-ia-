@@ -26,9 +26,14 @@ const AuthWrapper = () => {
   }, []);
 
   const handleLoginSuccess = (email: string) => {
-    const plan = 'hobby';
+    let plan = 'hobby'; // Default new users to the free hobby plan for instant access
+
+    // Explicitly set 'business' plan for evaldo0510@gmail.com to unlock all features
+    if (email.trim().toLowerCase() === 'evaldo0510@gmail.com') {
+      plan = 'business'; 
+    }
+    
     sessionStorage.setItem('userEmail', email);
-    // Default new users to the free hobby plan for instant access
     sessionStorage.setItem('userPlan', plan);
     setUserEmail(email);
     setUserPlan(plan);

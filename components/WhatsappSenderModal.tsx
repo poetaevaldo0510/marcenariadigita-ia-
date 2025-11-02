@@ -6,22 +6,22 @@ interface WhatsappSenderModalProps {
     isOpen: boolean;
     onClose: () => void;
     project: ProjectHistoryItem | null;
-    client: Client | null;
+    // Removed 'client' prop
     showAlert: (message: string, title?: string) => void;
 }
 
-export const WhatsappSenderModal: React.FC<WhatsappSenderModalProps> = ({ isOpen, onClose, project, client, showAlert }) => {
+export const WhatsappSenderModal: React.FC<WhatsappSenderModalProps> = ({ isOpen, onClose, project, showAlert }) => {
     const [message, setMessage] = useState('');
     const [phone, setPhone] = useState('');
 
     useEffect(() => {
-        if (isOpen && project && client) {
-            setMessage(`Olá, ${client.name}! Segue a proposta para o projeto "${project.name}". Por favor, revise e me avise se tiver alguma dúvida. Tenha um ótimo dia!`);
-            setPhone(client.phone || '');
+        if (isOpen && project) {
+            setMessage(`Olá, ${project.endClientName || 'cliente'}! Segue a proposta para o projeto "${project.name}". Por favor, revise e me avise se tiver alguma dúvida. Tenha um ótimo dia!`);
+            setPhone(project.endClientPhone || '');
         }
-    }, [project, client, isOpen]);
+    }, [project, isOpen]);
 
-    if (!isOpen || !project || !client) return null;
+    if (!isOpen || !project) return null; // Removed client from this check
 
     const handleSend = () => {
         if (!phone.trim()) {
@@ -58,7 +58,7 @@ export const WhatsappSenderModal: React.FC<WhatsappSenderModalProps> = ({ isOpen
                 <main className="p-6 space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9]">Cliente</label>
-                        <input type="text" value={client.name} readOnly className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] p-2 mt-1 rounded-lg border border-[#dcd6c8] dark:border-[#5a4f4f] opacity-70" />
+                        <input type="text" value={project.endClientName || 'Não especificado'} readOnly className="w-full bg-[#f0e9dc] dark:bg-[#2d2424] p-2 mt-1 rounded-lg border border-[#dcd6c8] dark:border-[#5a4f4f] opacity-70" />
                     </div>
                      <div>
                         <label htmlFor="whatsapp-phone" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9]">Telefone (incluir código do país, ex: 55119...)</label>

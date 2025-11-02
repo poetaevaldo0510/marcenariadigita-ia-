@@ -31,9 +31,12 @@ export interface Client {
   name: string;
   phone?: string;
   email?: string;
-  address?: string;
+  address?: string; // Full address including CEP if provided, or simply city
+  city?: string; // New field for simpler waitlist registration
   notes?: string;
-  status: 'lead' | 'active' | 'completed' | 'on-hold';
+  status: 'lead' | 'active' | 'completed' | 'on-hold' | 'waitlist'; // Added 'waitlist'
+  feedback?: string;
+  motivation?: string; // New field for waitlist/adherence questions
 }
 
 export interface ProjectHistoryItem {
@@ -57,8 +60,9 @@ export interface ProjectHistoryItem {
   cuttingPlan?: string | null;
   cuttingPlanImage?: string | null;
   cuttingPlanOptimization?: string | null;
-  clientId?: string;
-  clientName?: string;
+  // These now refer to the END-CLIENT of the furniture project
+  endClientName?: string; 
+  endClientPhone?: string;
   materialCost?: number;
   laborCost?: number;
   projectValue?: number; // Custo para o cliente final
@@ -97,15 +101,16 @@ export interface PricedBomItem {
   isSearching: boolean;
 }
 
-export interface Marceneiro {
-  id: number;
-  nome: string;
-  cidade: string;
-  especialidade: string[];
-  anosExperiencia: number;
-  notaMedia: number;
-  email: string;
-}
+// Deprecate Marceneiro interface, use Client instead for consistency
+// export interface Marceneiro {
+//   id: number;
+//   nome: string;
+//   cidade: string;
+//   especialidade: string[];
+//   anosExperiencia: number;
+//   notaMedia: number;
+//   email: string;
+// }
 
 export interface ProjectLead {
   id: string;

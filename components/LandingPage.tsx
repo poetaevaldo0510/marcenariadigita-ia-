@@ -1,6 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { LogoIcon, CubeIcon, BlueprintIcon, BookIcon, ToolsIcon, CurrencyDollarIcon, StarIcon, CheckIcon } from './Shared';
+// FIX: Added Spinner to the import from Shared.
+import { LogoIcon, CubeIcon, BlueprintIcon, BookIcon, ToolsIcon, CurrencyDollarIcon, StarIcon, CheckIcon, Spinner } from './Shared';
 import { useTranslation } from '../contexts/I18nContext';
+import type { Client } from '../types'; // Import Client type
+import { saveClient } from '../services/historyService'; // Import saveClient
 
 interface LandingPageProps {
   onLoginSuccess: (email: string) => void;
@@ -124,6 +127,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const loginRef = useRef<HTMLDivElement>(null);
+    const waitlistRef = useRef<HTMLDivElement>(null); // New ref for waitlist section
+
+    const [waitlistForm, setWaitlistForm] = useState<Omit<Client, 'id' | 'timestamp' | 'status'> & { status?: 'waitlist' }>({ 
+        name: '', 
+        email: '', 
+        phone: '', 
+        city: '', 
+        motivation: '',
+        status: 'waitlist'
+    });
+    const [waitlistMessage, setWaitlistMessage] = useState<string | null>(null);
+    const [isSubmittingWaitlist, setIsSubmittingWaitlist] = useState(false);
+
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
@@ -143,6 +159,40 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
     const scrollToLogin = () => {
         loginRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
+
+    const scrollToWaitlist = () => { // New scroll function
+        waitlistRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    const handleWaitlistChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        setWaitlistForm(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleWaitlistSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setWaitlistMessage(null);
+        setIsSubmittingWaitlist(true);
+
+        if (!waitlistForm.name.trim() || !waitlistForm.email.trim() || !waitlistForm.city.trim() || !waitlistForm.motivation.trim()) {
+            setWaitlistMessage('Por favor, preencha todos os campos obrigatórios.');
+            setIsSubmittingWaitlist(false);
+            return;
+        }
+
+        try {
+            // Save the client as 'waitlist'
+            await saveClient(waitlistForm);
+            setWaitlistMessage('Seu interesse foi registrado! Entraremos em contato em breve.');
+            setWaitlistForm({ name: '', email: '', phone: '', city: '', motivation: '', status: 'waitlist' }); // Clear form
+        } catch (err) {
+            setWaitlistMessage('Erro ao registrar seu interesse. Tente novamente mais tarde.');
+            console.error("Failed to save waitlist client:", err);
+        } finally {
+            setIsSubmittingWaitlist(false);
+        }
+    };
+
 
     return (
         <div className="bg-[#f5f1e8] dark:bg-[#2d2424] text-[#3e3535] dark:text-[#f5f1e8] animate-fadeIn">
@@ -180,6 +230,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                                 className="bg-gradient-to-r from-[#d4ac6e] to-[#b99256] text-[#3e3535] font-bold py-4 px-8 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 text-lg"
                             >
                                 {t('start_creating_now')} &rarr;
+                            </button>
+                             <button
+                                onClick={scrollToWaitlist}
+                                className="mt-4 md:ml-4 bg-[#e6ddcd] dark:bg-[#4a4040] text-[#3e3535] dark:text-[#f5f1e8] font-bold py-4 px-8 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 text-lg"
+                            >
+                                Cadastre-se Agora!
                             </button>
                         </div>
                          <div className="animate-slideInRight">
@@ -299,12 +355,118 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess }) => {
                         </div>
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                             {plans.map(plan => (
-                                <PlanCard key={plan.name} plan={plan} onSelect={scrollToLogin} />
+                                <PlanCard key={plan.name} plan={plan} onSelect={scrollToWaitlist} /> {/* Updated CTA for plans */}
                             ))}
                         </div>
                     </div>
                 </section>
                 
+                {/* NEW: Waitlist / Cadastro de Interesse Section */}
+                <section id="waitlist" ref={waitlistRef} className="py-20 px-6 bg-[#f0e9dc] dark:bg-[#2d2424] border-t border-[#e6ddcd] dark:border-[#4a4040]">
+                    <div className="w-full max-w-md mx-auto text-center">
+                        <h2 className="text-3xl font-bold font-serif text-[#3e3535] dark:text-[#f5f1e8] mb-4">Junte-se à Lista de Espera para o EncontraPro!</h2>
+                        <p className="text-lg text-[#6a5f5f] dark:text-[#c7bca9] mb-8">
+                            Seja um dos primeiros a ter acesso total ao nosso marketplace de projetos, conectando você a novos clientes. Responda algumas perguntas rápidas para nos ajudar a te conhecer melhor.
+                        </p>
+                        <div className="bg-[#fffefb]/80 dark:bg-[#4a4040] backdrop-blur-sm p-8 rounded-xl border border-[#e6ddcd] dark:border-[#4a4040] shadow-2xl shadow-stone-300/30 dark:shadow-black/30">
+                            <h3 className="text-2xl font-serif font-semibold text-center text-[#3e3535] dark:text-[#f5f1e8] mb-6">Cadastro de Interesse</h3>
+                            <form onSubmit={handleWaitlistSubmit} className="space-y-6">
+                                <div>
+                                    <label htmlFor="waitlist-name" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9]">
+                                        Seu Nome ou Nome da Marcenaria *
+                                    </label>
+                                    <input
+                                        id="waitlist-name"
+                                        name="name"
+                                        type="text"
+                                        required
+                                        value={waitlistForm.name}
+                                        onChange={handleWaitlistChange}
+                                        className="mt-1 block w-full bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#5a4f4f] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition"
+                                        placeholder="Nome Completo ou Razão Social"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="waitlist-email" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9]">
+                                        Seu E-mail *
+                                    </label>
+                                    <input
+                                        id="waitlist-email"
+                                        name="email"
+                                        type="email"
+                                        autoComplete="email"
+                                        required
+                                        value={waitlistForm.email}
+                                        onChange={handleWaitlistChange}
+                                        className="mt-1 block w-full bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#5a4f4f] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition"
+                                        placeholder="seu@email.com"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="waitlist-phone" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9]">
+                                        Telefone (Opcional)
+                                    </label>
+                                    <input
+                                        id="waitlist-phone"
+                                        name="phone"
+                                        type="tel"
+                                        value={waitlistForm.phone}
+                                        onChange={handleWaitlistChange}
+                                        className="mt-1 block w-full bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#5a4f4f] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition"
+                                        placeholder="(XX) XXXXX-XXXX"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="waitlist-city" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9]">
+                                        Sua Cidade de Atuação *
+                                    </label>
+                                    <input
+                                        id="waitlist-city"
+                                        name="city"
+                                        type="text"
+                                        required
+                                        value={waitlistForm.city}
+                                        onChange={handleWaitlistChange}
+                                        className="mt-1 block w-full bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#5a4f4f] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition"
+                                        placeholder="Ex: São Paulo"
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="waitlist-motivation" className="block text-sm font-medium text-[#6a5f5f] dark:text-[#c7bca9]">
+                                        O que você mais busca no MarcenApp e como ele pode te ajudar? *
+                                    </label>
+                                    <textarea
+                                        id="waitlist-motivation"
+                                        name="motivation"
+                                        rows={4}
+                                        required
+                                        value={waitlistForm.motivation}
+                                        onChange={handleWaitlistChange}
+                                        className="mt-1 block w-full bg-[#f0e9dc] dark:bg-[#2d2424] border-2 border-[#e6ddcd] dark:border-[#5a4f4f] rounded-lg p-3 text-[#3e3535] dark:text-[#f5f1e8] focus:outline-none focus:ring-2 focus:ring-[#d4ac6e] focus:border-[#d4ac6e] transition"
+                                        placeholder="Ex: Preciso de projetos 3D rápidos e planos de corte otimizados para reduzir meu tempo de planejamento e custo de material."
+                                    />
+                                </div>
+                                {waitlistMessage && (
+                                    <p className={`text-sm text-center ${waitlistMessage.includes('Erro') ? 'text-red-500' : 'text-green-500'}`}>
+                                        {waitlistMessage}
+                                    </p>
+                                )}
+                                <div>
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmittingWaitlist}
+                                        className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-base font-medium text-[#3e3535] bg-[#d4ac6e] hover:bg-[#c89f5e] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#d4ac6e] transition disabled:opacity-50"
+                                    >
+                                        {isSubmittingWaitlist ? <Spinner size="sm" /> : <CheckIcon className="w-5 h-5"/>}
+                                        <span>{isSubmittingWaitlist ? 'Enviando...' : 'Cadastrar na Lista de Espera'}</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+
+
                 {/* Login/CTA Section */}
                 <section id="login" ref={loginRef} className="py-20 px-6">
                     <div className="w-full max-w-md mx-auto">

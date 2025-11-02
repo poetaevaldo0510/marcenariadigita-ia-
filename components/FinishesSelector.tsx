@@ -132,7 +132,7 @@ export const FinishesSelector: React.FC<FinishesSelectorProps> = ({ onFinishSele
                     >
                         <button
                             onClick={(e) => {
-                                e.stopPropagation();
+                                e.stopPropagation(); // Prevent selecting the finish when clicking the star
                                 onToggleFavorite(finish);
                             }}
                             className="absolute top-2 right-2 z-10 p-1.5 bg-black/40 rounded-full text-yellow-400 hover:bg-black/60 transition"

@@ -9,11 +9,11 @@ interface ProposalModalProps {
     isOpen: boolean;
     onClose: () => void;
     project: ProjectHistoryItem;
-    client?: Client;
+    // Removed 'client' prop
     showAlert: (message: string, title?: string) => void;
 }
 
-export const ProposalModal: React.FC<ProposalModalProps> = ({ isOpen, onClose, project, client, showAlert }) => {
+export const ProposalModal: React.FC<ProposalModalProps> = ({ isOpen, onClose, project, showAlert }) => {
     const { t } = useTranslation();
     const [costs, setCosts] = useState({ material: 0, labor: 0 });
     const [notes, setNotes] = useState('Validade da proposta: 15 dias.\nCondições de pagamento: 50% de entrada, 50% na entrega.\nPrazo de entrega: 30 dias úteis após a confirmação do pedido.');
@@ -101,9 +101,9 @@ export const ProposalModal: React.FC<ProposalModalProps> = ({ isOpen, onClose, p
                         {/* Client Info */}
                          <div style={{marginTop: '2rem'}}>
                             <h2 style={{fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a', borderBottom: '1px solid #cbd5e1', paddingBottom: '0.5rem', marginBottom: '1rem'}}>Informações do Cliente</h2>
-                            <p><strong>Nome:</strong> {client?.name || 'Não especificado'}</p>
-                            <p><strong>Email:</strong> {client?.email || 'Não especificado'}</p>
-                            <p><strong>Telefone:</strong> {client?.phone || 'Não especificado'}</p>
+                            <p><strong>Nome:</strong> {project.endClientName || 'Não especificado'}</p>
+                            <p><strong>Telefone:</strong> {project.endClientPhone || 'Não especificado'}</p>
+                            {/* Email removed as it's not on ProjectHistoryItem */}
                         </div>
                         
                         {/* Project Details */}

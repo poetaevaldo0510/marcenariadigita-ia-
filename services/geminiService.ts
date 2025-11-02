@@ -1,6 +1,7 @@
 import { GoogleGenAI, Modality, GenerateContentResponse, Type } from "@google/genai";
 import type { Part } from "@google/genai";
-import type { Finish, ProjectHistoryItem, LocationState, Marceneiro, PricedBomItem, ProjectLead, UserPerformance } from '../types.ts';
+// FIX: Removed the deprecated Marceneiro import. The Client type is used for 'marceneiros' and is handled elsewhere.
+import type { Finish, ProjectHistoryItem, LocationState, PricedBomItem, ProjectLead, UserPerformance } from '../types.ts';
 import { cleanAndParseJson } from "../utils/helpers.ts";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
